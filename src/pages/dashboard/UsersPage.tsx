@@ -437,6 +437,7 @@ export default function UsersPage() {
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 title="Nouvel utilisateur"
+                size="lg"
                 footer={
                     <>
                         <Button variant="secondary" onClick={closeModal}>

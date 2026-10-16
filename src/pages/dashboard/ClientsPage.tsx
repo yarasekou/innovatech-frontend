@@ -436,6 +436,7 @@ export default function ClientsPage() {
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 title={editingClient ? 'Modifier le client' : 'Nouveau client'}
+                size="2xl"
                 footer={
                     <>
                         <Button variant="secondary" onClick={closeModal}>

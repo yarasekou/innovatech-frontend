@@ -17,7 +17,7 @@ interface PlaceholderPageProps {
     title: string;
     subtitle?: string;
     icon: keyof typeof ICONS;
-    description: string;
+    description?: string;
 }
 
 const ICONS = {
@@ -48,7 +48,7 @@ export default function PlaceholderPage({
                 <EmptyState
                     icon={<Icon className="h-16 w-16" />}
                     title="Module en construction"
-                    description={description}
+                    description={description ?? 'Ce module sera bientôt disponible.'}
                 />
             </div>
         </div>

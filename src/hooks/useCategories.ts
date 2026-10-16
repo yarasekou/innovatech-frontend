@@ -18,35 +18,26 @@ export function useCategories() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const loadCategories = useCallback(async () => {
+    const loadCategories = useCallback(async (): Promise<void> => {
         try {
             setLoading(true);
             setError(null);
 
-            console.log('🔍 useCategories - targetUserId:', targetUserId);
-
-            let data;
-            if (targetUserId) {
-                console.log('🔍 useCategories - mode INSPECTION');
-                data = await adminInspectionService.getCategories(targetUserId);
-            } else {
-                console.log('🔍 useCategories - mode NORMAL');
-                data = await categorieService.getCategories();
-            }
-
-            console.log('🔍 useCategories - data reçue:', data);
+            const data = targetUserId
+                ? await adminInspectionService.getCategories(targetUserId)
+                : await categorieService.getCategories();
 
             setCategories(data);
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } } };
-            setError(error.response?.data?.message || 'Erreur de chargement');
+            const e = err as { response?: { data?: { message?: string } } };
+            setError(e.response?.data?.message || 'Erreur de chargement');
         } finally {
             setLoading(false);
         }
     }, [targetUserId]);
 
     useEffect(() => {
-        loadCategories();
+        void loadCategories();
     }, [loadCategories]);
 
     return {

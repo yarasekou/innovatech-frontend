@@ -170,6 +170,7 @@ export default function EntrepriseEditModal({
             isOpen={isOpen}
             onClose={onClose}
             title="Modifier l'entreprise"
+            size="2xl"
             footer={
                 <>
                     <Button variant="secondary" onClick={onClose}>

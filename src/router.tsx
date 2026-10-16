@@ -15,6 +15,9 @@ import ProduitDetailPage from './pages/dashboard/ProduitDetailPage';
 import CategoriesPage from './pages/dashboard/CategoriesPage';
 import MonEntreprisePage from './pages/dashboard/MonEntreprisePage';
 import ClientsPage from './pages/dashboard/ClientsPage';
+import FournisseursPage from './pages/dashboard/FournisseursPage';
+import CommandesPage from './pages/dashboard/CommandesPage';           // ← NOUVEAU
+import CommandeDetailPage from './pages/dashboard/CommandeDetailPage'; // ← NOUVEAU
 
 export const router = createBrowserRouter([
     // ============================================================
@@ -88,26 +91,9 @@ export const router = createBrowserRouter([
                             { path: 'produits', element: <ProduitsPage /> },
                             { path: 'produits/:id', element: <ProduitDetailPage /> },
                             { path: 'clients', element: <ClientsPage /> },
-                            {
-                                path: 'fournisseurs',
-                                element: (
-                                    <PlaceholderPage
-                                        title="Fournisseurs"
-                                        icon="truck"
-                                        description="À venir"
-                                    />
-                                ),
-                            },
-                            {
-                                path: 'commandes',
-                                element: (
-                                    <PlaceholderPage
-                                        title="Commandes"
-                                        icon="cart"
-                                        description="À venir"
-                                    />
-                                ),
-                            },
+                            { path: 'fournisseurs', element: <FournisseursPage /> },
+                            { path: 'commandes', element: <CommandesPage /> },              // ← NOUVEAU
+                            { path: 'commandes/:id', element: <CommandeDetailPage /> },    // ← NOUVEAU
                         ],
                     },
 
@@ -119,26 +105,9 @@ export const router = createBrowserRouter([
                     { path: 'produits', element: <ProduitsPage /> },
                     { path: 'produits/:id', element: <ProduitDetailPage /> },
                     { path: 'clients', element: <ClientsPage /> },
-                    {
-                        path: 'fournisseurs',
-                        element: (
-                            <PlaceholderPage
-                                title="Fournisseurs"
-                                icon="truck"
-                                description="À venir"
-                            />
-                        ),
-                    },
-                    {
-                        path: 'commandes',
-                        element: (
-                            <PlaceholderPage
-                                title="Commandes"
-                                icon="cart"
-                                description="À venir"
-                            />
-                        ),
-                    },
+                    { path: 'fournisseurs', element: <FournisseursPage /> },
+                    { path: 'commandes', element: <CommandesPage /> },                 // ← NOUVEAU
+                    { path: 'commandes/:id', element: <CommandeDetailPage /> },        // ← NOUVEAU
                     {
                         path: 'paiements',
                         element: (

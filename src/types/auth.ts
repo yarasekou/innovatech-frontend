@@ -76,3 +76,9 @@ export const isAdmin = (roles: string[]): boolean => hasRole(roles, 'ROLE_ADMIN'
 export const isSuperAdmin = (roles: string[]): boolean => hasRole(roles, 'ROLE_SUPER_ADMIN');
 export const isUser = (roles: string[]): boolean => hasRole(roles, 'ROLE_USER');
 export const isSeller = (roles: string[]): boolean => hasRole(roles, 'ROLE_SELLER');
+
+/**
+ * True si l'utilisateur appartient à une entreprise (ADMIN, USER ou SELLER).
+ */
+export const isTenant = (roles: string[]): boolean =>
+    isAdmin(roles) || isUser(roles) || isSeller(roles);

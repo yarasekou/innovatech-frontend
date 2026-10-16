@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -62,7 +62,15 @@ type ProduitForm = z.infer<typeof produitSchema>;
 
 export default function ProduitsPage() {
     const navigate = useNavigate();
-    const { produits, loading, error, isInspection, reload } = useProduits();
+    const { userId } = useParams<{ userId?: string }>();
+    const isInspection = !!userId;
+
+    // Chemin de base (avec inspection ou non)
+    const basePath = isInspection
+        ? `/dashboard/users/${userId}/produits`
+        : '/dashboard/produits';
+
+    const { produits, loading, error, reload } = useProduits();
     const { categories } = useCategories();
     const authUser = useAuthStore((state) => state.user);
     const roles = authUser?.roles || [];
@@ -77,6 +85,7 @@ export default function ProduitsPage() {
     const [editingProduit, setEditingProduit] = useState<ProduitResponse | null>(null);
     const [search, setSearch] = useState('');
     const [categorieFilter, setCategorieFilter] = useState<number | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const {
         register,
@@ -98,7 +107,6 @@ export default function ProduitsPage() {
     });
 
     // ============================================================
-    // IDs des catégories sélectionnées + descendants
     // ⚠️ DOIT être déclaré AVANT `filtered`
     // ============================================================
     const selectedCategorieIds = useMemo(() => {
@@ -135,6 +143,35 @@ export default function ProduitsPage() {
         );
         return { valeurStock, margePotentielle };
     }, [filtered]);
+
+    // ============================================================
+    // Ouverture auto du modal via ?edit=ID
+    // ============================================================
+    useEffect(() => {
+        const editId = searchParams.get('edit');
+        if (!editId || produits.length === 0) return;
+
+        const produit = produits.find((p) => p.id === Number(editId));
+        if (produit) {
+            setEditingProduit(produit);
+            reset({
+                reference: produit.reference,
+                nom: produit.nom,
+                description: produit.description || '',
+                prix: produit.prix,
+                prixAchat: produit.prixAchat,
+                stock: produit.stock,
+                categorieId: produit.categorieId,
+                actif: produit.actif,
+            });
+            setIsModalOpen(true);
+
+            // Nettoyer le paramètre ?edit
+            const next = new URLSearchParams(searchParams);
+            next.delete('edit');
+            setSearchParams(next, { replace: true });
+        }
+    }, [produits, searchParams, setSearchParams, reset]);
 
     // ============================================================
     // Actions
@@ -321,25 +358,17 @@ export default function ProduitsPage() {
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                                 Stock
                             </th>
-
-                            {/* Colonne ACTIONS — uniquement hors inspection */}
-                            {!isInspection && (
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                                    Actions
-                                </th>
-                            )}
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
+                                Actions
+                            </th>
                         </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                         {filtered.map((p) => (
                             <tr
                                 key={p.id}
-                                className={`hover:bg-gray-50 ${isInspection ? 'cursor-pointer' : ''}`}
-                                onClick={() => {
-                                    if (isInspection) {
-                                        navigate(`/dashboard/produits/${p.id}`);
-                                    }
-                                }}
+                                className="hover:bg-gray-50 cursor-pointer"
+                                onClick={() => navigate(`${basePath}/${p.id}`)}
                             >
                                 <td className="px-4 py-3">
                                     {p.photoPrincipale ? (
@@ -381,49 +410,46 @@ export default function ProduitsPage() {
                                     </span>
                                 </td>
 
-                                {/* Cellule ACTIONS — uniquement hors inspection */}
-                                {!isInspection && (
-                                    <td className="px-4 py-3 text-right">
-                                        <div className="flex items-center justify-end gap-1">
+                                <td className="px-4 py-3 text-right">
+                                    <div className="flex items-center justify-end gap-1">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`${basePath}/${p.id}`);
+                                            }}
+                                            className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
+                                            title="Voir le détail"
+                                        >
+                                            <EyeIcon className="h-4 w-4" />
+                                        </button>
+
+                                        {canEdit && (
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    navigate(`/dashboard/produits/${p.id}`);
+                                                    openEditModal(p);
                                                 }}
                                                 className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
-                                                title="Voir le détail"
+                                                title="Modifier"
                                             >
-                                                <EyeIcon className="h-4 w-4" />
+                                                <PencilSquareIcon className="h-4 w-4" />
                                             </button>
+                                        )}
 
-                                            {canEdit && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        openEditModal(p);
-                                                    }}
-                                                    className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
-                                                    title="Modifier"
-                                                >
-                                                    <PencilSquareIcon className="h-4 w-4" />
-                                                </button>
-                                            )}
-
-                                            {canDelete && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDelete(p);
-                                                    }}
-                                                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                                    title="Supprimer"
-                                                >
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                )}
+                                        {canDelete && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(p);
+                                                }}
+                                                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                title="Supprimer"
+                                            >
+                                                <TrashIcon className="h-4 w-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </td>
                             </tr>
                         ))}
                         </tbody>
@@ -436,6 +462,7 @@ export default function ProduitsPage() {
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 title={editingProduit ? 'Modifier le produit' : 'Nouveau produit'}
+                size="2xl"
                 footer={
                     <>
                         <Button variant="secondary" onClick={closeModal}>

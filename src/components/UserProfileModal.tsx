@@ -31,8 +31,8 @@ interface UserProfileModalProps {
 const profileSchema = z.object({
     username: z.string().min(3, 'Min 3').max(50, 'Max 50'),
     email: z.string().email('Email invalide'),
-    prenom: z.string().min(2, 'Min 2').max(100, 'Max 100').optional().or(z.literal('')),
-    nom: z.string().min(2, 'Min 2').max(100, 'Max 100').optional().or(z.literal('')),
+    prenom: z.string().max(100, 'Max 100').optional().or(z.literal('')),
+    nom: z.string().max(100, 'Max 100').optional().or(z.literal('')),
 });
 
 const passwordSchema = z.object({
@@ -83,6 +83,8 @@ export default function UserProfileModal({
             resetProfile({
                 username: user.username,
                 email: user.email,
+                // ⚠️ On ne connaît pas prenom/nom côté store.
+                // On laisse vide → non envoyés au back → non écrasés.
                 prenom: '',
                 nom: '',
             });
@@ -102,8 +104,9 @@ export default function UserProfileModal({
             const response = await authService.updateProfile({
                 username: data.username,
                 email: data.email,
-                prenom: data.prenom || undefined,
-                nom: data.nom || undefined,
+                // ⚠️ N'envoyer que si non-vide → préserve l'existant côté back
+                prenom: data.prenom?.trim() || undefined,
+                nom: data.nom?.trim() || undefined,
             });
 
             updateUser(
@@ -149,6 +152,7 @@ export default function UserProfileModal({
             isOpen={isOpen}
             onClose={onClose}
             title="Mon profil"
+            size="lg"
             footer={
                 <>
                     <Button variant="secondary" onClick={onClose}>
@@ -245,6 +249,7 @@ export default function UserProfileModal({
                             <input
                                 {...registerProfile('prenom')}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="Laisser vide pour ne pas changer"
                             />
                         </div>
                         <div>
@@ -254,6 +259,7 @@ export default function UserProfileModal({
                             <input
                                 {...registerProfile('nom')}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="Laisser vide pour ne pas changer"
                             />
                         </div>
                     </div>

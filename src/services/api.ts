@@ -35,13 +35,27 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
-            // Token expiré ou invalide
-            useAuthStore.getState().logout();
-            if (window.location.pathname !== '/login') {
+        const status = error.response?.status;
+        const currentPath = window.location.pathname;
+
+        // Routes publiques : ne pas déclencher de logout
+        const isPublicRoute =
+            currentPath === '/login' ||
+            currentPath === '/register' ||
+            currentPath === '/';
+
+        // Uniquement si :
+        // - 401
+        // - PAS sur une route publique
+        // - ET un token existait (sinon l'utilisateur est juste anonyme)
+        if (status === 401 && !isPublicRoute) {
+            const hadToken = !!useAuthStore.getState().token;
+            if (hadToken) {
+                useAuthStore.getState().logout();
                 window.location.href = '/login';
             }
         }
+
         return Promise.reject(error);
     }
 );

@@ -11,6 +11,8 @@ import {
     ChevronDownIcon,
     FolderIcon,
     FolderOpenIcon,
+    ArrowsPointingOutIcon,
+    ArrowsPointingInIcon,
 } from '@heroicons/react/24/outline';
 import PageHeader from '../../components/PageHeader';
 import Button from '../../components/Button';
@@ -96,14 +98,37 @@ export default function CategoriesPage() {
     }, [categories]);
 
     // ============================================================
-    // Actions
+    // Actions expand/collapse
     // ============================================================
 
     const toggleExpand = (id: number) => {
         const next = new Set(expandedIds);
-        next.has(id) ? next.delete(id) : next.add(id);
+        if (next.has(id)) {
+            next.delete(id);
+        } else {
+            next.add(id);
+        }
         setExpandedIds(next);
     };
+
+    const expandAll = () => {
+        // On n'ajoute QUE les catégories qui ont des enfants
+        const idsWithChildren = new Set<number>();
+        categories.forEach((c) => {
+            if (categories.some((child) => child.parentId === c.id)) {
+                idsWithChildren.add(c.id);
+            }
+        });
+        setExpandedIds(idsWithChildren);
+    };
+
+    const collapseAll = () => {
+        setExpandedIds(new Set());
+    };
+
+    // ============================================================
+    // Actions CRUD
+    // ============================================================
 
     const onSubmit = async (data: CategorieForm) => {
         try {
@@ -168,12 +193,15 @@ export default function CategoriesPage() {
     // ============================================================
     // Rendu récursif
     // ============================================================
-
-    const renderNode = (node: TreeNode, depth: number = 0, isLast: boolean = false) => {
+    const renderNode = (
+        node: TreeNode,
+        depth: number = 0,
+        isLast: boolean = false,
+        parentLines: boolean[] = []
+    ) => {
         const hasChildren = node.children.length > 0;
         const isExpanded = expandedIds.has(node.id);
 
-        // Style selon le niveau
         const isRoot = depth === 0;
         const isLeaf = !hasChildren;
 
@@ -183,13 +211,26 @@ export default function CategoriesPage() {
                     className={`flex items-center gap-3 py-3 hover:bg-gray-50 border-b border-gray-100 group ${
                         isRoot ? 'bg-gray-50/50' : ''
                     }`}
-                    style={{ paddingLeft: `${16 + depth * 32}px`, paddingRight: '16px' }}
+                    style={{
+                        paddingLeft: `${16 + depth * 32}px`,
+                        paddingRight: '16px',
+                    }}
                 >
-                    {/* Lignes de connexion visuelles */}
+                    {/* Lignes de connexion verticales (ancêtres) + nœud */}
                     {depth > 0 && (
-                        <span className="text-gray-300 font-mono select-none">
-              {isLast ? '└─' : '├─'}
-            </span>
+                        <span className="flex items-center text-gray-300 font-mono select-none text-base leading-none">
+                            {parentLines.map((hasMore, i) => (
+                                <span
+                                    key={i}
+                                    className="inline-block w-8 text-center"
+                                >
+                                    {hasMore ? '│' : ' '}
+                                </span>
+                            ))}
+                            <span className="inline-block w-8 text-center">
+                                {isLast ? '└─' : '├─'}
+                            </span>
+                        </span>
                     )}
 
                     {/* Flèche expand/collapse */}
@@ -241,8 +282,8 @@ export default function CategoriesPage() {
                     {/* Badge inactif */}
                     {!node.actif && (
                         <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-              Inactif
-            </span>
+                            Inactif
+                        </span>
                     )}
 
                     {/* Actions */}
@@ -276,9 +317,19 @@ export default function CategoriesPage() {
                 {/* Enfants */}
                 {hasChildren && isExpanded && (
                     <div>
-                        {node.children.map((child, idx) =>
-                            renderNode(child, depth + 1, idx === node.children.length - 1)
-                        )}
+                        {node.children.map((child, idx) => {
+                            const childIsLast = idx === node.children.length - 1;
+                            // Ajoute le "niveau" actuel dans les lignes verticales
+                            // → !isLast = le parent (ce nœud) a un frère plus bas → ligne continue
+                            const childParentLines = [...parentLines, !isLast];
+
+                            return renderNode(
+                                child,
+                                depth + 1,
+                                childIsLast,
+                                childParentLines
+                            );
+                        })}
                     </div>
                 )}
             </div>
@@ -300,14 +351,38 @@ export default function CategoriesPage() {
                             : 'Catégories de votre entreprise'
                 }
                 actions={
-                    canEdit ? (
-                        <Button
-                            icon={<PlusIcon className="h-5 w-5" />}
-                            onClick={() => openCreateModal(null)}
-                        >
-                            Nouvelle catégorie
-                        </Button>
-                    ) : undefined
+                    <div className="flex items-center gap-2">
+                        {categories.length > 0 && (
+                            <>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={<ArrowsPointingOutIcon className="h-4 w-4" />}
+                                    onClick={expandAll}
+                                    title="Tout déplier"
+                                >
+                                    Déplier
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={<ArrowsPointingInIcon className="h-4 w-4" />}
+                                    onClick={collapseAll}
+                                    title="Tout replier"
+                                >
+                                    Replier
+                                </Button>
+                            </>
+                        )}
+                        {canEdit && (
+                            <Button
+                                icon={<PlusIcon className="h-5 w-5" />}
+                                onClick={() => openCreateModal(null)}
+                            >
+                                Nouvelle catégorie
+                            </Button>
+                        )}
+                    </div>
                 }
             />
 
@@ -322,7 +397,7 @@ export default function CategoriesPage() {
                         title="Aucune catégorie"
                         description={
                             isInspection
-                                ? 'Cette entreprise n\'a aucune catégorie.'
+                                ? "Cette entreprise n'a aucune catégorie."
                                 : 'Commencez par créer votre première catégorie.'
                         }
                         action={
@@ -337,7 +412,11 @@ export default function CategoriesPage() {
                         }
                     />
                 ) : (
-                    <div>{tree.map((node, idx) => renderNode(node, 0, idx === tree.length - 1))}</div>
+                    <div>
+                        {tree.map((node, idx) =>
+                            renderNode(node, 0, idx === tree.length - 1, [])
+                        )}
+                    </div>
                 )}
             </div>
 
@@ -346,6 +425,7 @@ export default function CategoriesPage() {
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 title={editingCategorie ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
+                size="lg"
                 footer={
                     <>
                         <Button variant="secondary" onClick={closeModal}>

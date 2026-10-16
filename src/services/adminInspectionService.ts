@@ -3,6 +3,8 @@ import type { UserResponse } from '../types/user';
 import type { ProduitResponse } from '../types/produit';
 import type { CategorieResponse } from '../types/categorie';
 import type {ClientResponse} from "../types/client.ts";
+import type {FournisseurResponse} from "../types/fournisseur.ts";
+import type {CommandeResponse} from "../types/commande.ts";
 
 export const adminInspectionService = {
     async getProfil(userId: number): Promise<UserResponse> {
@@ -22,6 +24,20 @@ export const adminInspectionService = {
 
     async getClients(userId: number): Promise<ClientResponse[]> {
         const response = await api.get<ClientResponse[]>(`/admin/users/${userId}/clients`);
+        return response.data;
+    },
+
+    async getFournisseurs(userId: number): Promise<FournisseurResponse[]> {
+        const response = await api.get<FournisseurResponse[]>(
+            `/admin/users/${userId}/fournisseurs`
+        );
+        return response.data;
+    },
+
+    async getCommandes(userId: number): Promise<CommandeResponse[]> {
+        const response = await api.get<CommandeResponse[]>(
+            `/admin/users/${userId}/commandes`
+        );
         return response.data;
     },
 };

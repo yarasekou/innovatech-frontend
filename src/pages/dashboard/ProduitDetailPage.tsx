@@ -34,14 +34,21 @@ interface ApiError {
 // ============================================================
 
 export default function ProduitDetailPage() {
-    const { id } = useParams<{ id: string }>();
+    const { id, userId } = useParams<{ id: string; userId?: string }>();
     const navigate = useNavigate();
     const produitId = Number(id);
 
+    const isInspection = !!userId;
+
+    // Chemin de base (avec inspection ou non)
+    const basePath = isInspection
+        ? `/dashboard/users/${userId}/produits`
+        : '/dashboard/produits';
+
     const authUser = useAuthStore((state) => state.user);
     const roles = authUser?.roles || [];
-    const canEdit = checkIsUser(roles) || checkIsSeller(roles);
-    const canDelete = checkIsUser(roles);
+    const canEdit = (checkIsUser(roles) || checkIsSeller(roles)) && !isInspection;
+    const canDelete = checkIsUser(roles) && !isInspection;
 
     const [produit, setProduit] = useState<ProduitResponse | null>(null);
     const [loading, setLoading] = useState(true);
@@ -111,8 +118,14 @@ export default function ProduitDetailPage() {
     };
 
     // ============================================================
-    // Suppression produit
+    // Actions produit
     // ============================================================
+    const handleEdit = (): void => {
+        // Redirige vers la liste avec un paramètre ?edit=ID
+        // ProduitsPage ouvrira automatiquement le modal
+        navigate(`${basePath}?edit=${produit?.id ?? ''}`);
+    };
+
     const handleDeleteProduit = async (): Promise<void> => {
         if (!produit) return;
         const ok = confirm(`Supprimer le produit "${produit.nom}" ?`);
@@ -120,7 +133,7 @@ export default function ProduitDetailPage() {
 
         try {
             await produitService.deleteProduit(produit.id);
-            navigate('/dashboard/produits');
+            navigate(basePath);
         } catch (err: unknown) {
             const e = err as ApiError;
             alert(e.response?.data?.message || 'Erreur');
@@ -131,13 +144,14 @@ export default function ProduitDetailPage() {
     // Rendu
     // ============================================================
     if (loading) return <LoadingSpinner />;
+
     if (error) {
         return (
             <div className="p-8">
                 <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
                     <p className="text-red-600">{error}</p>
                     <button
-                        onClick={() => navigate('/dashboard/produits')}
+                        onClick={() => navigate(basePath)}
                         className="mt-4 text-sm text-red-700 underline"
                     >
                         Retour aux produits
@@ -146,13 +160,14 @@ export default function ProduitDetailPage() {
             </div>
         );
     }
+
     if (!produit) return null;
 
     return (
         <div className="p-8">
             {/* Retour */}
             <button
-                onClick={() => navigate('/dashboard/produits')}
+                onClick={() => navigate(basePath)}
                 className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6"
             >
                 <ArrowLeftIcon className="h-4 w-4" />
@@ -189,6 +204,7 @@ export default function ProduitDetailPage() {
                         <Button
                             variant="secondary"
                             icon={<PencilSquareIcon className="h-4 w-4" />}
+                            onClick={handleEdit}
                         >
                             Modifier
                         </Button>

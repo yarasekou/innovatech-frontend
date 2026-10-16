@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import {
     BuildingOffice2Icon,
@@ -97,7 +98,7 @@ export default function MonEntreprisePage() {
     if (!entreprise) return null;
 
     // ============================================================
-    // Rendu (commun à tous les rôles + bouton Modifier si ADMIN)
+    // Rendu
     // ============================================================
     const hasEmail = !!entreprise.email;
     const hasTelephone = !!entreprise.telephone;
@@ -283,7 +284,7 @@ export default function MonEntreprisePage() {
 // ============================================================
 
 interface InfoCardProps {
-    icon: React.ReactNode;
+    icon: ReactNode;
     label: string;
     value: string;
 }
