@@ -2,9 +2,11 @@ import api from './api';
 import type { UserResponse } from '../types/user';
 import type { ProduitResponse } from '../types/produit';
 import type { CategorieResponse } from '../types/categorie';
-import type {ClientResponse} from "../types/client.ts";
-import type {FournisseurResponse} from "../types/fournisseur.ts";
-import type {CommandeResponse} from "../types/commande.ts";
+import type { ClientResponse } from '../types/client';
+import type { FournisseurResponse } from '../types/fournisseur';
+import type { CommandeResponse } from '../types/commande';
+import type { PaiementResponse } from '../types/paiement';
+import type {RetourResponse} from "../types/retour.ts";
 
 export const adminInspectionService = {
     async getProfil(userId: number): Promise<UserResponse> {
@@ -37,6 +39,20 @@ export const adminInspectionService = {
     async getCommandes(userId: number): Promise<CommandeResponse[]> {
         const response = await api.get<CommandeResponse[]>(
             `/admin/users/${userId}/commandes`
+        );
+        return response.data;
+    },
+
+    async getPaiements(userId: number): Promise<PaiementResponse[]> {
+        const response = await api.get<PaiementResponse[]>(
+            `/admin/users/${userId}/paiements`
+        );
+        return response.data;
+    },
+
+    async getRetours(userId: number): Promise<RetourResponse[]> {
+        const response = await api.get<RetourResponse[]>(
+            `/admin/users/${userId}/retours`
         );
         return response.data;
     },

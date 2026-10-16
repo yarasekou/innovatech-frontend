@@ -16,8 +16,11 @@ import CategoriesPage from './pages/dashboard/CategoriesPage';
 import MonEntreprisePage from './pages/dashboard/MonEntreprisePage';
 import ClientsPage from './pages/dashboard/ClientsPage';
 import FournisseursPage from './pages/dashboard/FournisseursPage';
-import CommandesPage from './pages/dashboard/CommandesPage';           // ← NOUVEAU
-import CommandeDetailPage from './pages/dashboard/CommandeDetailPage'; // ← NOUVEAU
+import CommandesPage from './pages/dashboard/CommandesPage';
+import CommandeDetailPage from './pages/dashboard/CommandeDetailPage';
+import PaiementsPage from './pages/dashboard/PaiementsPage';
+import RetoursPage from './pages/dashboard/RetoursPage';
+import RetourDetailPage from './pages/dashboard/RetourDetailPage';
 
 export const router = createBrowserRouter([
     // ============================================================
@@ -92,8 +95,22 @@ export const router = createBrowserRouter([
                             { path: 'produits/:id', element: <ProduitDetailPage /> },
                             { path: 'clients', element: <ClientsPage /> },
                             { path: 'fournisseurs', element: <FournisseursPage /> },
-                            { path: 'commandes', element: <CommandesPage /> },              // ← NOUVEAU
-                            { path: 'commandes/:id', element: <CommandeDetailPage /> },    // ← NOUVEAU
+                            { path: 'commandes', element: <CommandesPage /> },
+                            { path: 'commandes/:id', element: <CommandeDetailPage /> },
+                            { path: 'paiements', element: <PaiementsPage /> },
+                            // ⚠️ L'ORDRE EST CRUCIAL : 'nouveau' AVANT ':id'
+                            { path: 'retours', element: <RetoursPage /> },
+                            {
+                                path: 'retours/nouveau',
+                                element: (
+                                    <PlaceholderPage
+                                        title="Nouveau retour"
+                                        icon="arrowUturn"
+                                        description="Formulaire de retour à venir"
+                                    />
+                                ),
+                            },
+                            { path: 'retours/:id', element: <RetourDetailPage /> },
                         ],
                     },
 
@@ -106,28 +123,22 @@ export const router = createBrowserRouter([
                     { path: 'produits/:id', element: <ProduitDetailPage /> },
                     { path: 'clients', element: <ClientsPage /> },
                     { path: 'fournisseurs', element: <FournisseursPage /> },
-                    { path: 'commandes', element: <CommandesPage /> },                 // ← NOUVEAU
-                    { path: 'commandes/:id', element: <CommandeDetailPage /> },        // ← NOUVEAU
+                    { path: 'commandes', element: <CommandesPage /> },
+                    { path: 'commandes/:id', element: <CommandeDetailPage /> },
+                    { path: 'paiements', element: <PaiementsPage /> },
+                    // ⚠️ ORDRE : 'nouveau' AVANT ':id'
+                    { path: 'retours', element: <RetoursPage /> },
                     {
-                        path: 'paiements',
+                        path: 'retours/nouveau',
                         element: (
                             <PlaceholderPage
-                                title="Paiements"
-                                icon="document"
-                                description="À venir"
-                            />
-                        ),
-                    },
-                    {
-                        path: 'retours',
-                        element: (
-                            <PlaceholderPage
-                                title="Retours"
+                                title="Nouveau retour"
                                 icon="arrowUturn"
-                                description="À venir"
+                                description="Formulaire de retour à venir"
                             />
                         ),
                     },
+                    { path: 'retours/:id', element: <RetourDetailPage /> },
                     {
                         path: 'achats',
                         element: (
