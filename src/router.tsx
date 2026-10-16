@@ -21,6 +21,7 @@ import CommandeDetailPage from './pages/dashboard/CommandeDetailPage';
 import PaiementsPage from './pages/dashboard/PaiementsPage';
 import RetoursPage from './pages/dashboard/RetoursPage';
 import RetourDetailPage from './pages/dashboard/RetourDetailPage';
+import NouveauRetourPage from './pages/dashboard/NouveauRetourPage';   // ← NOUVEAU
 
 export const router = createBrowserRouter([
     // ============================================================
@@ -98,18 +99,9 @@ export const router = createBrowserRouter([
                             { path: 'commandes', element: <CommandesPage /> },
                             { path: 'commandes/:id', element: <CommandeDetailPage /> },
                             { path: 'paiements', element: <PaiementsPage /> },
-                            // ⚠️ L'ORDRE EST CRUCIAL : 'nouveau' AVANT ':id'
+                            // ⚠️ ORDRE : 'nouveau' AVANT ':id'
                             { path: 'retours', element: <RetoursPage /> },
-                            {
-                                path: 'retours/nouveau',
-                                element: (
-                                    <PlaceholderPage
-                                        title="Nouveau retour"
-                                        icon="arrowUturn"
-                                        description="Formulaire de retour à venir"
-                                    />
-                                ),
-                            },
+                            { path: 'retours/nouveau', element: <NouveauRetourPage /> },   // ← FIX
                             { path: 'retours/:id', element: <RetourDetailPage /> },
                         ],
                     },
@@ -128,16 +120,7 @@ export const router = createBrowserRouter([
                     { path: 'paiements', element: <PaiementsPage /> },
                     // ⚠️ ORDRE : 'nouveau' AVANT ':id'
                     { path: 'retours', element: <RetoursPage /> },
-                    {
-                        path: 'retours/nouveau',
-                        element: (
-                            <PlaceholderPage
-                                title="Nouveau retour"
-                                icon="arrowUturn"
-                                description="Formulaire de retour à venir"
-                            />
-                        ),
-                    },
+                    { path: 'retours/nouveau', element: <NouveauRetourPage /> },   // ← FIX
                     { path: 'retours/:id', element: <RetourDetailPage /> },
                     {
                         path: 'achats',
