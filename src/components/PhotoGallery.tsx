@@ -5,7 +5,7 @@ import { getFullUrl } from '../utils/url';
 import type { PhotoProduit } from '../types/photo';
 
 interface PhotoGalleryProps {
-    photos: PhotoProduit[];
+    photos: PhotoProduit[] | null | undefined;   // ← accepte null/undefined
     canEdit: boolean;
     onDelete?: (photoId: number) => void;
     onSetPrincipale?: (photoId: number) => void;
@@ -19,7 +19,10 @@ export default function PhotoGallery({
                                      }: PhotoGalleryProps) {
     const [lightbox, setLightbox] = useState<PhotoProduit | null>(null);
 
-    if (photos.length === 0) {
+    // ⚠️ GUARD : photos peut être null ou undefined
+    const safePhotos = photos ?? [];
+
+    if (safePhotos.length === 0) {
         return (
             <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 col-span-full">
                 <CubeIcon className="h-12 w-12 text-gray-300 mx-auto mb-2" />
@@ -30,7 +33,7 @@ export default function PhotoGallery({
 
     return (
         <>
-            {photos.map((photo) => (
+            {safePhotos.map((photo) => (
                 <div
                     key={photo.id}
                     className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-white"
