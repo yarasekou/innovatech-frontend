@@ -114,7 +114,7 @@ export default function DashboardLayout() {
 
     return (
         <div className="min-h-screen flex bg-gray-50">
-            <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+            <aside className="w-64 bg-white border-r border-gray-200 flex flex-col print:hidden">
                 {/* Logo */}
                 <div className="h-16 flex items-center px-6 border-b border-gray-200">
                     <Link to="/dashboard" className="text-xl font-bold text-primary-600">
@@ -211,9 +211,10 @@ export default function DashboardLayout() {
                 </div>
             </aside>
 
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto print:ml-0 print:w-full">
                 <Outlet />
             </main>
+
 
             {/* Modal de profil */}
             <UserProfileModal

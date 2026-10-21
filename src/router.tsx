@@ -21,7 +21,11 @@ import CommandeDetailPage from './pages/dashboard/CommandeDetailPage';
 import PaiementsPage from './pages/dashboard/PaiementsPage';
 import RetoursPage from './pages/dashboard/RetoursPage';
 import RetourDetailPage from './pages/dashboard/RetourDetailPage';
-import NouveauRetourPage from './pages/dashboard/NouveauRetourPage';   // ← NOUVEAU
+import NouveauRetourPage from './pages/dashboard/NouveauRetourPage';
+import AchatsPage from './pages/dashboard/AchatsPage';
+import AchatDetailPage from './pages/dashboard/AchatDetailPage';
+import FacturesPage from './pages/dashboard/FacturesPage'; // ⚠️ NOUVEAU
+import FactureDetailPage from './pages/dashboard/FactureDetailPage'; // ⚠️ NOUVEAU
 
 export const router = createBrowserRouter([
     // ============================================================
@@ -99,10 +103,13 @@ export const router = createBrowserRouter([
                             { path: 'commandes', element: <CommandesPage /> },
                             { path: 'commandes/:id', element: <CommandeDetailPage /> },
                             { path: 'paiements', element: <PaiementsPage /> },
-                            // ⚠️ ORDRE : 'nouveau' AVANT ':id'
                             { path: 'retours', element: <RetoursPage /> },
-                            { path: 'retours/nouveau', element: <NouveauRetourPage /> },   // ← FIX
+                            { path: 'retours/nouveau', element: <NouveauRetourPage /> },
                             { path: 'retours/:id', element: <RetourDetailPage /> },
+                            { path: 'achats', element: <AchatsPage /> },
+                            { path: 'achats/:id', element: <AchatDetailPage /> },
+                            { path: 'factures', element: <FacturesPage /> },             // ⚠️ NOUVEAU
+                            { path: 'factures/:id', element: <FactureDetailPage /> },    // ⚠️ NOUVEAU
                         ],
                     },
 
@@ -118,20 +125,13 @@ export const router = createBrowserRouter([
                     { path: 'commandes', element: <CommandesPage /> },
                     { path: 'commandes/:id', element: <CommandeDetailPage /> },
                     { path: 'paiements', element: <PaiementsPage /> },
-                    // ⚠️ ORDRE : 'nouveau' AVANT ':id'
                     { path: 'retours', element: <RetoursPage /> },
-                    { path: 'retours/nouveau', element: <NouveauRetourPage /> },   // ← FIX
+                    { path: 'retours/nouveau', element: <NouveauRetourPage /> },
                     { path: 'retours/:id', element: <RetourDetailPage /> },
-                    {
-                        path: 'achats',
-                        element: (
-                            <PlaceholderPage
-                                title="Achats"
-                                icon="shoppingBag"
-                                description="À venir"
-                            />
-                        ),
-                    },
+                    { path: 'achats', element: <AchatsPage /> },
+                    { path: 'achats/:id', element: <AchatDetailPage /> },
+                    { path: 'factures', element: <FacturesPage /> },                 // ⚠️ NOUVEAU
+                    { path: 'factures/:id', element: <FactureDetailPage /> },        // ⚠️ NOUVEAU
                 ],
             },
         ],

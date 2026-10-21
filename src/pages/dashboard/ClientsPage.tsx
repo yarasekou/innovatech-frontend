@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +11,8 @@ import {
     Squares2X2Icon,
     CheckCircleIcon,
     XCircleIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
 } from '@heroicons/react/24/outline';
 import PageHeader from '../../components/PageHeader';
 import Button from '../../components/Button';
@@ -27,16 +29,12 @@ import {
 import type { ClientResponse } from '../../types/client';
 
 // ============================================================
-// Types
+// Types & Validation
 // ============================================================
 
 interface ApiError {
     response?: { data?: { message?: string } };
 }
-
-// ============================================================
-// Validation
-// ============================================================
 
 const clientSchema = z.object({
     nom: z.string().min(2, 'Min 2').max(100, 'Max 100'),
@@ -71,6 +69,10 @@ export default function ClientsPage() {
     const [editingClient, setEditingClient] = useState<ClientResponse | null>(null);
     const [search, setSearch] = useState('');
     const [villeFilter, setVilleFilter] = useState<string>('');
+
+    // ⚠️ ÉTATS POUR LA PAGINATION
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     const {
         register,
@@ -119,7 +121,23 @@ export default function ClientsPage() {
     }, [clients, search, villeFilter]);
 
     // ============================================================
-    // Totaux
+    // Pagination Logic
+    // ============================================================
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
+    // Si on change de filtre, on revient à la page 1
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, villeFilter, itemsPerPage]);
+
+    // Clients de la page actuelle
+    const paginatedClients = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filtered.slice(start, start + itemsPerPage);
+    }, [filtered, currentPage, itemsPerPage]);
+
+    // ============================================================
+    // Totaux (calculés sur TOUS les clients filtrés)
     // ============================================================
     const totals = useMemo(() => {
         const total = filtered.length;
@@ -210,7 +228,6 @@ export default function ClientsPage() {
             if (c.actif) {
                 await clientService.deactivateClient(c.id);
             } else {
-                // Réactiver : via update
                 await clientService.updateClient(c.id, {
                     nom: c.nom,
                     prenom: c.prenom,
@@ -319,115 +336,154 @@ export default function ClientsPage() {
                         Aucun client ne correspond à votre recherche.
                     </div>
                 ) : (
-                    <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                Client
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                Email
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                Téléphone
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                Ville
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                Statut
-                            </th>
-                            {!isInspection && canEdit && (
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                                    Actions
+                    <>
+                        <table className="w-full">
+                            <thead className="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Client
                                 </th>
-                            )}
-                        </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                        {filtered.map((c) => (
-                            <tr key={c.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-semibold text-primary-700">
-                          {c.prenom.charAt(0).toUpperCase()}
-                            {c.nom.charAt(0).toUpperCase()}
-                        </span>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {c.prenom} {c.nom}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-700">{c.email}</td>
-                                <td className="px-4 py-3 text-sm text-gray-500">
-                                    {c.telephone || '—'}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-500">
-                                    {c.ville || '—'}
-                                </td>
-                                <td className="px-4 py-3">
-                                    {c.actif ? (
-                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                        <CheckCircleIcon className="h-4 w-4" />
-                        Actif
-                      </span>
-                                    ) : (
-                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                        <XCircleIcon className="h-4 w-4" />
-                        Inactif
-                      </span>
-                                    )}
-                                </td>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Email
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Téléphone
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Ville
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Statut
+                                </th>
                                 {!isInspection && canEdit && (
-                                    <td className="px-4 py-3 text-right">
-                                        <div className="flex items-center justify-end gap-1">
-                                            {/* Activer / Désactiver */}
-                                            <button
-                                                onClick={() => handleToggleActif(c)}
-                                                className={`p-2 rounded-lg transition-colors ${
-                                                    c.actif
-                                                        ? 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'
-                                                        : 'text-gray-500 hover:text-green-600 hover:bg-green-50'
-                                                }`}
-                                                title={c.actif ? 'Désactiver' : 'Activer'}
-                                            >
-                                                {c.actif ? (
-                                                    <XCircleIcon className="h-4 w-4" />
-                                                ) : (
-                                                    <CheckCircleIcon className="h-4 w-4" />
-                                                )}
-                                            </button>
-
-                                            {/* Modifier */}
-                                            <button
-                                                onClick={() => openEditModal(c)}
-                                                className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
-                                                title="Modifier"
-                                            >
-                                                <PencilSquareIcon className="h-4 w-4" />
-                                            </button>
-
-                                            {/* Supprimer — USER uniquement */}
-                                            {canDelete && (
-                                                <button
-                                                    onClick={() => handleDelete(c)}
-                                                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                                    title="Supprimer"
-                                                >
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
+                                        Actions
+                                    </th>
                                 )}
                             </tr>
-                        ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                            {paginatedClients.map((c) => (
+                                <tr key={c.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                                                <span className="text-sm font-semibold text-primary-700">
+                                                    {c.prenom.charAt(0).toUpperCase()}
+                                                    {c.nom.charAt(0).toUpperCase()}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    {c.prenom} {c.nom}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-gray-700">{c.email}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-500">
+                                        {c.telephone || '—'}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-gray-500">
+                                        {c.ville || '—'}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {c.actif ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                                <CheckCircleIcon className="h-4 w-4" />
+                                                Actif
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                                <XCircleIcon className="h-4 w-4" />
+                                                Inactif
+                                            </span>
+                                        )}
+                                    </td>
+                                    {!isInspection && canEdit && (
+                                        <td className="px-4 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <button
+                                                    onClick={() => handleToggleActif(c)}
+                                                    className={`p-2 rounded-lg transition-colors ${
+                                                        c.actif
+                                                            ? 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'
+                                                            : 'text-gray-500 hover:text-green-600 hover:bg-green-50'
+                                                    }`}
+                                                    title={c.actif ? 'Désactiver' : 'Activer'}
+                                                >
+                                                    {c.actif ? (
+                                                        <XCircleIcon className="h-4 w-4" />
+                                                    ) : (
+                                                        <CheckCircleIcon className="h-4 w-4" />
+                                                    )}
+                                                </button>
+
+                                                <button
+                                                    onClick={() => openEditModal(c)}
+                                                    className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
+                                                    title="Modifier"
+                                                >
+                                                    <PencilSquareIcon className="h-4 w-4" />
+                                                </button>
+
+                                                {canDelete && (
+                                                    <button
+                                                        onClick={() => handleDelete(c)}
+                                                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                        title="Supprimer"
+                                                    >
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+
+                        {/* ⚠️ BARRE DE PAGINATION */}
+                        <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-white border-t border-gray-100 gap-4">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <span>Afficher</span>
+                                <select
+                                    value={itemsPerPage}
+                                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                                    className="border border-gray-300 rounded-lg px-2 py-1 focus:ring-primary-500 outline-none"
+                                >
+                                    <option value={10}>10</option>
+                                    <option value={25}>25</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                                <span>par page</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600">
+                                    Page {currentPage} sur {totalPages}
+                                </span>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                        disabled={currentPage === 1}
+                                        className="p-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        <ChevronLeftIcon className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="p-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        <ChevronRightIcon className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </>
                 )}
             </div>
 

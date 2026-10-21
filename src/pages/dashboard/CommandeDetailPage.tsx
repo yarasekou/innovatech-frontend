@@ -18,6 +18,7 @@ import Modal from '../../components/Modal';
 import { commandeService } from '../../services/commandeService';
 import { paiementService } from '../../services/paiementService';
 import { retourService } from '../../services/retourService';
+import { factureService } from '../../services/factureService'; // ⚠️ NOUVEAU
 import { useAuthStore } from '../../stores/authStore';
 import {
     isUser as checkIsUser,
@@ -44,17 +45,9 @@ import {
     type RetourResponse,
 } from '../../types/retour';
 
-// ============================================================
-// Types
-// ============================================================
-
 interface ApiError {
     response?: { data?: { message?: string } };
 }
-
-// ============================================================
-// Composant
-// ============================================================
 
 export default function CommandeDetailPage() {
     const { id, userId } = useParams<{ id: string; userId?: string }>();
@@ -65,6 +58,10 @@ export default function CommandeDetailPage() {
     const basePath = isInspection
         ? `/dashboard/users/${userId}/commandes`
         : '/dashboard/commandes';
+
+    const factureBasePath = isInspection
+        ? `/dashboard/users/${userId}/factures`
+        : '/dashboard/factures';
 
     const authUser = useAuthStore((state) => state.user);
     const roles = authUser?.roles || [];
@@ -83,6 +80,9 @@ export default function CommandeDetailPage() {
 
     // Retours
     const [retours, setRetours] = useState<RetourResponse[]>([]);
+
+    // ⚠️ Facture
+    const [factureId, setFactureId] = useState<number | null>(null);
 
     // Modal paiement
     const [isPaiementModalOpen, setIsPaiementModalOpen] = useState(false);
@@ -103,7 +103,6 @@ export default function CommandeDetailPage() {
     // Charger commande
     // ============================================================
     const loadCommande = useCallback(async (): Promise<void> => {
-        // ⚠️ GUARD
         if (!id || Number.isNaN(commandeId)) {
             setError('Identifiant de commande invalide');
             setLoading(false);
@@ -131,7 +130,6 @@ export default function CommandeDetailPage() {
     // Charger paiements + reste à payer
     // ============================================================
     const loadPaiements = useCallback(async (): Promise<void> => {
-        // ⚠️ GUARD
         if (!commandeId || Number.isNaN(commandeId)) return;
         try {
             const [list, r] = await Promise.all([
@@ -153,7 +151,6 @@ export default function CommandeDetailPage() {
     // Charger retours
     // ============================================================
     const loadRetours = useCallback(async (): Promise<void> => {
-        // ⚠️ GUARD
         if (!commandeId || Number.isNaN(commandeId)) return;
         try {
             const list = await retourService.getByCommande(commandeId);
@@ -166,6 +163,17 @@ export default function CommandeDetailPage() {
     useEffect(() => {
         void loadRetours();
     }, [loadRetours]);
+
+    // ============================================================
+    // Charger Facture (si LIVREE)
+    // ============================================================
+    useEffect(() => {
+        if (commande?.statut === 'LIVREE') {
+            factureService.getByCommande(commande.id)
+                .then((f) => setFactureId(f.id))
+                .catch(() => setFactureId(null)); // Pas de facture (404)
+        }
+    }, [commande?.statut, commande?.id]);
 
     // ============================================================
     // Actions commande
@@ -224,9 +232,7 @@ export default function CommandeDetailPage() {
         }
         if (reste && paiementForm.montant > reste.resteAPayer) {
             alert(
-                `Le montant dépasse le reste à payer (${reste.resteAPayer.toLocaleString(
-                    'fr-FR'
-                )} FCFA)`
+                `Le montant dépasse le reste à payer (${reste.resteAPayer.toLocaleString('fr-FR')} FCFA)`
             );
             return;
         }
@@ -251,7 +257,24 @@ export default function CommandeDetailPage() {
     };
 
     // ============================================================
-    // Rendu — loading / error
+    // Actions Facture
+    // ============================================================
+    const handleCreerFacture = async (): Promise<void> => {
+        if (!commande) return;
+        try {
+            setActionLoading(true);
+            const facture = await factureService.createFacture({ commandeId: commande.id });
+            navigate(`${factureBasePath}/${facture.id}`);
+        } catch (err: unknown) {
+            const e = err as ApiError;
+            alert(e.response?.data?.message || 'Erreur lors de la création de la facture');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // ============================================================
+    // Rendu
     // ============================================================
     if (loading) return <LoadingSpinner />;
 
@@ -736,9 +759,9 @@ export default function CommandeDetailPage() {
                 </div>
             )}
 
-            {/* Info facture pour LIVREE */}
+            {/* ⚠️ Facture (si LIVREE) */}
             {commande.statut === 'LIVREE' && (
-                <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                <div className="bg-green-50 border border-green-200 rounded-xl p-6 flex items-center justify-between flex-wrap gap-4">
                     <div className="flex items-start gap-3">
                         <DocumentTextIcon className="h-6 w-6 text-green-600 flex-shrink-0" />
                         <div>
@@ -746,11 +769,31 @@ export default function CommandeDetailPage() {
                                 Commande livrée
                             </p>
                             <p className="text-sm text-green-700 mt-1">
-                                Vous pouvez maintenant générer une facture pour cette commande.
-                                (Module factures à venir)
+                                {factureId
+                                    ? 'La facture a déjà été générée pour cette commande.'
+                                    : 'Vous pouvez générer la facture pour cette commande.'}
                             </p>
                         </div>
                     </div>
+
+                    {factureId ? (
+                        <Button
+                            variant="secondary"
+                            onClick={() => navigate(`${factureBasePath}/${factureId}`)}
+                        >
+                            Voir la facture
+                        </Button>
+                    ) : (
+                        canEdit && (
+                            <Button
+                                onClick={handleCreerFacture}
+                                loading={actionLoading}
+                                icon={<DocumentTextIcon className="h-4 w-4" />}
+                            >
+                                Générer la facture
+                            </Button>
+                        )
+                    )}
                 </div>
             )}
 

@@ -7,6 +7,8 @@ import type { FournisseurResponse } from '../types/fournisseur';
 import type { CommandeResponse } from '../types/commande';
 import type { PaiementResponse } from '../types/paiement';
 import type {RetourResponse} from "../types/retour.ts";
+import type {CommandeAchatResponse} from "../types/commandeAchat.ts";
+import type {FactureResponse} from "../types/facture.ts";
 
 export const adminInspectionService = {
     async getProfil(userId: number): Promise<UserResponse> {
@@ -54,6 +56,18 @@ export const adminInspectionService = {
         const response = await api.get<RetourResponse[]>(
             `/admin/users/${userId}/retours`
         );
+        return response.data;
+    },
+
+    async getCommandesAchat(userId: number): Promise<CommandeAchatResponse[]> {
+        const response = await api.get<CommandeAchatResponse[]>(
+            `/admin/users/${userId}/achats`
+        );
+        return response.data;
+    },
+
+    async getFactures(userId: number): Promise<FactureResponse[]> {
+        const response = await api.get<FactureResponse[]>(`/admin/users/${userId}/factures`);
         return response.data;
     },
 };
