@@ -11,14 +11,15 @@ import {
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Button from '../../components/Button';
 import { factureService } from '../../services/factureService';
-import { commandeService } from '../../services/commandeService'; // ⚠️ NOUVEAU pour les lignes
+import { commandeService } from '../../services/commandeService';
+import { commandeAchatService } from '../../services/commandeAchatService';
 import { useAuthStore } from '../../stores/authStore';
 import {
     isUser as checkIsUser,
     isSeller as checkIsSeller,
 } from '../../types/auth';
 import { getStatutFactureOption, type FactureResponse } from '../../types/facture';
-1
+
 interface ApiError {
     response?: { data?: { message?: string } };
 }
@@ -38,11 +39,14 @@ export default function FactureDetailPage() {
     const canEdit = (checkIsUser(roles) || checkIsSeller(roles)) && !isInspection;
 
     const [facture, setFacture] = useState<FactureResponse | null>(null);
-    const [lignes, setLignes] = useState<any[]>([]); // ⚠️ Stocke les lignes de la commande
+    const [lignes, setLignes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
 
+    // ============================================================
+    // Charger la facture ET les lignes
+    // ============================================================
     const loadData = useCallback(async (): Promise<void> => {
         if (!id || Number.isNaN(factureId)) {
             setError('Identifiant invalide');
@@ -52,14 +56,23 @@ export default function FactureDetailPage() {
         try {
             setLoading(true);
             setError(null);
-            // On charge la facture
+
+            // 1. Charger la facture
             const data = await factureService.getFactureById(factureId);
             setFacture(data);
 
-            // On charge la commande liée pour récupérer les lignes de produits
+            // 2. Charger les lignes (soit Vente, soit Achat)
             if (data.commandeId) {
-                const commande = await commandeService.getCommandeById(data.commandeId);
-                setLignes(commande.lignes || []);
+                const cmd = await commandeService.getCommandeById(data.commandeId);
+                setLignes(cmd.lignes || []);
+            } else if (data.commandeAchatId) {
+                const cmdAchat = await commandeAchatService.getCommandeAchatById(data.commandeAchatId);
+                // Adaptation du nom du champ (l'achat a prixAchatUnitaire)
+                const lignesAdaptees = (cmdAchat.lignes || []).map((l: any) => ({
+                    ...l,
+                    prixUnitaire: l.prixAchatUnitaire || 0,
+                }));
+                setLignes(lignesAdaptees);
             }
         } catch (err: unknown) {
             const e = err as ApiError;
@@ -115,6 +128,7 @@ export default function FactureDetailPage() {
     };
 
     if (loading) return <LoadingSpinner />;
+
     if (error) {
         return (
             <div className="p-8 text-center text-red-600 bg-red-50 rounded-xl max-w-2xl mx-auto mt-10">
@@ -125,9 +139,11 @@ export default function FactureDetailPage() {
             </div>
         );
     }
+
     if (!facture) return null;
 
     const statut = getStatutFactureOption(facture.statut);
+    const isAchat = !!facture.commandeAchatId;
 
     return (
         <div className="p-8 print:p-0 bg-gray-50 min-h-screen">
@@ -183,7 +199,7 @@ export default function FactureDetailPage() {
             {/* 🖨️ DOCUMENT FACTURE (Format A4) */}
             <div className="bg-white mx-auto max-w-[210mm] shadow-lg print:shadow-none print:w-full print:max-w-none relative overflow-hidden">
 
-                {/* Filigrane PAYÉ (Optionnel, s'affiche si payée) */}
+                {/* Filigrane PAYÉ */}
                 {facture.statut === 'PAYEE' && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] -rotate-45 z-0">
                         <span className="text-[200px] font-black text-green-600 tracking-widest uppercase">Payée</span>
@@ -200,7 +216,7 @@ export default function FactureDetailPage() {
                                 </div>
                                 <h2 className="text-2xl font-black text-gray-900">{facture.entrepriseNom}</h2>
                             </div>
-                            <p className="text-sm text-gray-500 mt-2 font-medium">Jokko Distribution SARL</p>
+                            <p className="text-sm text-gray-500 mt-2 font-medium">{facture.entrepriseNom} SARL</p>
                             <p className="text-sm text-gray-500">Dakar, Sénégal</p>
                             <p className="text-sm text-gray-500 mt-1">contact@jokko.example</p>
                             <p className="text-sm text-gray-500">+221 70 123 45 03</p>
@@ -217,10 +233,12 @@ export default function FactureDetailPage() {
                         </div>
                     </div>
 
-                    {/* Bloc Client */}
+                    {/* Bloc Client / Fournisseur */}
                     <div className="flex justify-between items-start mb-10">
                         <div className="w-1/2">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Facturé à</p>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                                {isAchat ? 'Fournisseur' : 'Facturé à'}
+                            </p>
                             <p className="font-bold text-gray-900 text-lg">{facture.clientNom}</p>
                             <div className="text-sm text-gray-600 mt-2 space-y-0.5">
                                 {facture.clientAdresse && <p className="whitespace-pre-line">{facture.clientAdresse}</p>}
@@ -231,7 +249,12 @@ export default function FactureDetailPage() {
                         </div>
                         <div className="w-1/2 text-right">
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Références</p>
-                            <p className="text-sm text-gray-600">Commande <span className="font-mono font-medium text-gray-900">{facture.commandeNumero || '—'}</span></p>
+                            <p className="text-sm text-gray-600">
+                                {isAchat ? 'Achat' : 'Commande'}{' '}
+                                <span className="font-mono font-medium text-gray-900">
+                                    {isAchat ? facture.commandeAchatNumero : facture.commandeNumero || '—'}
+                                </span>
+                            </p>
                         </div>
                     </div>
 
@@ -259,7 +282,7 @@ export default function FactureDetailPage() {
                                     {l.quantite}
                                 </td>
                                 <td className="py-4 text-right text-sm font-medium text-gray-900">
-                                    {l.sousTotal.toLocaleString('fr-FR')} FCFA
+                                    {(l.sousTotal || (l.prixUnitaire * l.quantite)).toLocaleString('fr-FR')} FCFA
                                 </td>
                             </tr>
                         ))}

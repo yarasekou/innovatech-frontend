@@ -7,7 +7,8 @@ export interface StatutFactureOption {
 }
 
 export interface FactureRequest {
-    commandeId: number;
+    commandeId?: number;
+    commandeAchatId?: number; // ⚠️ NOUVEAU
     dateEmission?: string;
     notes?: string;
 }
@@ -15,8 +16,14 @@ export interface FactureRequest {
 export interface FactureResponse {
     id: number;
     numero: string;
+
     commandeId: number | null;
     commandeNumero: string | null;
+
+    // ⚠️ NOUVEAU
+    commandeAchatId: number | null;
+    commandeAchatNumero: string | null;
+
     clientId: number | null;
     clientNom: string | null;
     clientAdresse: string | null;

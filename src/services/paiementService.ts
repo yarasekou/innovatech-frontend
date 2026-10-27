@@ -68,4 +68,9 @@ export const paiementService = {
     async deletePaiement(id: number): Promise<void> {
         await api.delete(`/paiements/${id}`);
     },
+
+    async getByCommandeAchat(commandeAchatId: number): Promise<PaiementResponse[]> {
+        const response = await api.get<PaiementResponse[]>(`/paiements/achat/${commandeAchatId}`);
+        return response.data;
+    },
 };

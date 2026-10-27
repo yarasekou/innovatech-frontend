@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { paiementService } from '../services/paiementService';
+import { paiementService } from '../services/paiementService.ts';
 import { adminInspectionService } from '../services/adminInspectionService';
 import type { PaiementResponse } from '../types/paiement';
 

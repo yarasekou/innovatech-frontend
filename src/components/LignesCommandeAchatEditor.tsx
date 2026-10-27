@@ -11,8 +11,8 @@ import type { ProduitResponse } from '../types/produit';
 
 export interface LigneAchatDraft {
     produitId: number | null;
-    quantite: number;
-    prixAchatUnitaire: number;
+    quantite: number | '';
+    prixAchatUnitaire: number | '';
 }
 
 interface Props {
@@ -21,7 +21,6 @@ interface Props {
     onChange: (lignes: LigneAchatDraft[]) => void;
     onProduitCreated?: (produit: ProduitResponse) => void;
     disabled?: boolean;
-    /** Pour pré-remplir le prix d'achat lors du quick create */
     defaultPrixAchat?: number;
 }
 
@@ -44,17 +43,12 @@ export default function LignesCommandeAchatEditor({
 
     const produitsDejaUtilises = useMemo(() => {
         const set = new Set<number>();
-        lignes.forEach((l) => {
-            if (l.produitId) set.add(l.produitId);
-        });
+        lignes.forEach((l) => { if (l.produitId) set.add(l.produitId); });
         return set;
     }, [lignes]);
 
     const addLigne = () => {
-        onChange([
-            ...lignes,
-            { produitId: null, quantite: 1, prixAchatUnitaire: 0 },
-        ]);
+        onChange([...lignes, { produitId: null, quantite: 1, prixAchatUnitaire: '' }]);
     };
 
     const removeLigne = (index: number) => {
@@ -79,18 +73,19 @@ export default function LignesCommandeAchatEditor({
 
         if (existantIndex !== -1) {
             const next = [...lignes];
+            const qteExistante = Number(next[existantIndex].quantite) || 0;
+            const qteNouvelle = Number(lignes[index].quantite) || 0;
             next[existantIndex] = {
                 ...next[existantIndex],
-                quantite: next[existantIndex].quantite + lignes[index].quantite,
+                quantite: qteExistante + qteNouvelle,
             };
             next.splice(index, 1);
             onChange(next);
         } else {
-            // Auto-remplir le prix d'achat par défaut
             const produit = produitsMap.get(nouveauProduitId);
             updateLigne(index, {
                 produitId: nouveauProduitId,
-                prixAchatUnitaire: produit?.prixAchat ?? 0,
+                prixAchatUnitaire: produit?.prixAchat ?? '',
             });
         }
     };
@@ -101,11 +96,7 @@ export default function LignesCommandeAchatEditor({
     };
 
     const handleProduitCreated = (newProduit: ProduitResponse) => {
-        // Notifie le parent pour qu'il recharge la liste
-        if (onProduitCreated) {
-            onProduitCreated(newProduit);
-        }
-        // Auto-sélectionne dans la ligne
+        if (onProduitCreated) onProduitCreated(newProduit);
         if (quickCreateForIndex !== null) {
             updateLigne(quickCreateForIndex, {
                 produitId: newProduit.id,
@@ -118,7 +109,7 @@ export default function LignesCommandeAchatEditor({
 
     const totalHT = lignes.reduce((sum, l) => {
         if (!l.produitId) return sum;
-        return sum + l.prixAchatUnitaire * l.quantite;
+        return sum + (Number(l.prixAchatUnitaire) || 0) * (Number(l.quantite) || 0);
     }, 0);
 
     return (
@@ -126,42 +117,27 @@ export default function LignesCommandeAchatEditor({
             <div className="space-y-3">
                 <div className="space-y-2">
                     {lignes.map((ligne, index) => {
-                        const produit = ligne.produitId
-                            ? produitsMap.get(ligne.produitId)
-                            : null;
-                        const sousTotal = ligne.prixAchatUnitaire * ligne.quantite;
+                        const produit = ligne.produitId ? produitsMap.get(ligne.produitId) : null;
+                        const sousTotal = (Number(ligne.prixAchatUnitaire) || 0) * (Number(ligne.quantite) || 0);
 
                         return (
-                            <div
-                                key={index}
-                                className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50"
-                            >
-                                {/* Photo */}
+                            <div key={index} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
                                 <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
                                     {produit?.photoPrincipale ? (
                                         <img
                                             src={getFullUrl(produit.photoPrincipale)}
                                             alt={produit.nom}
                                             className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display =
-                                                    'none';
-                                            }}
+                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                         />
                                     ) : (
                                         <CubeIcon className="h-5 w-5 text-gray-400" />
                                     )}
                                 </div>
 
-                                {/* Produit */}
                                 <select
                                     value={ligne.produitId || ''}
-                                    onChange={(e) =>
-                                        handleProduitChange(
-                                            index,
-                                            e.target.value ? Number(e.target.value) : null
-                                        )
-                                    }
+                                    onChange={(e) => handleProduitChange(index, e.target.value ? Number(e.target.value) : null)}
                                     disabled={disabled}
                                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
                                 >
@@ -170,21 +146,14 @@ export default function LignesCommandeAchatEditor({
                                         const dejaUtilise = produitsDejaUtilises.has(p.id);
                                         const estCourant = ligne.produitId === p.id;
                                         const disabledOption = dejaUtilise && !estCourant;
-
                                         return (
-                                            <option
-                                                key={p.id}
-                                                value={p.id}
-                                                disabled={disabledOption}
-                                            >
-                                                {p.nom} ({p.reference})
-                                                {disabledOption ? ' (déjà ajouté)' : ''}
+                                            <option key={p.id} value={p.id} disabled={disabledOption}>
+                                                {p.nom} ({p.reference}) {disabledOption ? '(déjà ajouté)' : ''}
                                             </option>
                                         );
                                     })}
                                 </select>
 
-                                {/* Bouton Quick Create */}
                                 {!disabled && (
                                     <button
                                         type="button"
@@ -196,46 +165,31 @@ export default function LignesCommandeAchatEditor({
                                     </button>
                                 )}
 
-                                {/* Prix d'achat */}
                                 <input
                                     type="number"
                                     step="0.01"
                                     min="0"
                                     value={ligne.prixAchatUnitaire}
-                                    onChange={(e) =>
-                                        updateLigne(index, {
-                                            prixAchatUnitaire: Number(e.target.value) || 0,
-                                        })
-                                    }
+                                    onChange={(e) => updateLigne(index, { prixAchatUnitaire: e.target.value === '' ? '' : Number(e.target.value) })}
                                     disabled={disabled}
                                     placeholder="Prix achat"
                                     className="w-28 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm text-right"
                                     title="Prix d'achat unitaire"
                                 />
 
-                                {/* Quantité */}
                                 <input
                                     type="number"
                                     min={1}
                                     value={ligne.quantite}
-                                    onChange={(e) =>
-                                        updateLigne(index, {
-                                            quantite: Math.max(
-                                                1,
-                                                Number(e.target.value) || 1
-                                            ),
-                                        })
-                                    }
+                                    onChange={(e) => updateLigne(index, { quantite: e.target.value === '' ? '' : Number(e.target.value) })}
                                     disabled={disabled}
                                     className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm text-center"
                                 />
 
-                                {/* Sous-total */}
                                 <div className="w-28 text-right text-sm font-medium text-gray-900">
                                     {sousTotal.toLocaleString('fr-FR')}
                                 </div>
 
-                                {/* Suppr */}
                                 <button
                                     type="button"
                                     onClick={() => removeLigne(index)}
@@ -263,21 +217,15 @@ export default function LignesCommandeAchatEditor({
                     <div className="flex justify-end pt-2 border-t border-gray-200">
                         <div className="text-sm">
                             <span className="text-gray-600">Total HT provisoire : </span>
-                            <span className="font-semibold text-gray-900">
-                                {totalHT.toLocaleString('fr-FR')} FCFA
-                            </span>
+                            <span className="font-semibold text-gray-900">{totalHT.toLocaleString('fr-FR')} FCFA</span>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* Modal Quick Create */}
             <ProduitQuickCreateModal
                 isOpen={isQuickCreateOpen}
-                onClose={() => {
-                    setIsQuickCreateOpen(false);
-                    setQuickCreateForIndex(null);
-                }}
+                onClose={() => { setIsQuickCreateOpen(false); setQuickCreateForIndex(null); }}
                 onCreated={handleProduitCreated}
                 defaultPrixAchat={defaultPrixAchat}
             />

@@ -16,8 +16,25 @@ export const factureService = {
         const response = await api.get<FactureResponse>(`/factures/commande/${commandeId}`);
         return response.data;
     },
+    async getByCommandeAchat(commandeAchatId: number): Promise<FactureResponse | null> {
+        try {
+            const response = await api.get<FactureResponse>(`/factures/commande-achat/${commandeAchatId}`);
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 404) {
+                return null; // Pas de facture, c'est normal
+            }
+            throw error;
+        }
+    },
 
     async createFacture(data: FactureRequest): Promise<FactureResponse> {
+        const response = await api.post<FactureResponse>('/factures', data);
+        return response.data;
+    },
+
+    // ⚠️ NOUVEAU : Créer une facture pour un achat
+    async createFactureAchat(data: { commandeAchatId: number }): Promise<FactureResponse> {
         const response = await api.post<FactureResponse>('/factures', data);
         return response.data;
     },

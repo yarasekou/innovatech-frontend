@@ -34,7 +34,6 @@ import { getFullUrl } from '../../utils/url';
 import { getCategorieAndDescendants } from '../../utils/categories';
 import type { ProduitResponse } from '../../types/produit';
 
-// ⚠️ L'IMAGE PAR DÉFAUT
 const DEFAULT_IMAGE = '/img.jpg';
 
 // ============================================================
@@ -49,9 +48,10 @@ const produitSchema = z.object({
     reference: z.string().min(2, 'Min 2').max(50, 'Max 50'),
     nom: z.string().min(2, 'Min 2').max(150, 'Max 150'),
     description: z.string().max(1000, 'Max 1000').optional(),
-    prix: z.number().min(0, 'Doit être positif'),
-    prixAchat: z.number().min(0, 'Doit être positif'),
-    stock: z.number().int().min(0, 'Doit être positif'),
+    // ⚠️ On utilise z.coerce pour accepter les strings vides (qui deviennent 0)
+    prix: z.coerce.number().min(0, 'Doit être positif'),
+    prixAchat: z.coerce.number().min(0, 'Doit être positif'),
+    stock: z.coerce.number().int().min(0, 'Doit être positif'),
     categorieId: z.number().nullable().optional(),
     actif: z.boolean(),
 });
@@ -88,7 +88,6 @@ export default function ProduitsPage() {
     const [categorieFilter, setCategorieFilter] = useState<number | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // ⚠️ ÉTATS POUR LA PAGINATION
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -104,17 +103,14 @@ export default function ProduitsPage() {
             reference: '',
             nom: '',
             description: '',
-            prix: 0,
-            prixAchat: 0,
-            stock: 0,
+            prix: '' as any,       // ⚠️ Vide au lieu de 0
+            prixAchat: '' as any,  // ⚠️ Vide au lieu de 0
+            stock: '' as any,      // ⚠️ Vide au lieu de 0
             categorieId: null,
             actif: true,
         },
     });
 
-    // ============================================================
-    // Filtrage
-    // ============================================================
     const selectedCategorieIds = useMemo(() => {
         if (!categorieFilter) return new Set<number>();
         return new Set(getCategorieAndDescendants(categorieFilter, categories));
@@ -135,25 +131,17 @@ export default function ProduitsPage() {
         });
     }, [produits, search, categorieFilter, selectedCategorieIds]);
 
-    // ============================================================
-    // Pagination Logic
-    // ============================================================
     const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
-    // Si on change de filtre, on revient à la page 1
     useEffect(() => {
         setCurrentPage(1);
     }, [search, categorieFilter, itemsPerPage]);
 
-    // Produits de la page actuelle
     const paginatedProduits = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
         return filtered.slice(start, start + itemsPerPage);
     }, [filtered, currentPage, itemsPerPage]);
 
-    // ============================================================
-    // Totaux (calculés sur TOUS les produits filtrés, pas juste la page)
-    // ============================================================
     const totals = useMemo(() => {
         const valeurStock = filtered.reduce((sum, p) => sum + p.prix * p.stock, 0);
         const margePotentielle = filtered.reduce(
@@ -162,10 +150,6 @@ export default function ProduitsPage() {
         );
         return { valeurStock, margePotentielle };
     }, [filtered]);
-
-    // ============================================================
-    // Actions
-    // ============================================================
 
     useEffect(() => {
         const editId = searchParams.get('edit');
@@ -214,9 +198,9 @@ export default function ProduitsPage() {
             reference: '',
             nom: '',
             description: '',
-            prix: 0,
-            prixAchat: 0,
-            stock: 0,
+            prix: '' as any,
+            prixAchat: '' as any,
+            stock: '' as any,
             categorieId: null,
             actif: true,
         });
@@ -256,9 +240,6 @@ export default function ProduitsPage() {
         }
     };
 
-    // ============================================================
-    // Rendu
-    // ============================================================
     return (
         <div className="p-8">
             <PageHeader
@@ -279,7 +260,6 @@ export default function ProduitsPage() {
                 }
             />
 
-            {/* Barre de filtres + indicateurs */}
             {!loading && produits.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 space-y-3">
                     <div className="flex flex-col md:flex-row gap-3">
@@ -293,7 +273,6 @@ export default function ProduitsPage() {
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                             />
                         </div>
-
                         <div className="w-full md:w-64">
                             <CategorieTreeSelect
                                 categories={categories}
@@ -309,12 +288,10 @@ export default function ProduitsPage() {
                             <Squares2X2Icon className="h-4 w-4" />
                             {filtered.length} produit{filtered.length > 1 ? 's' : ''}
                         </div>
-
                         <div className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium whitespace-nowrap">
                             <CurrencyDollarIcon className="h-4 w-4" />
                             Valeur stock : {totals.valeurStock.toLocaleString('fr-FR')} FCFA
                         </div>
-
                         <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium whitespace-nowrap">
                             <ChartBarIcon className="h-4 w-4" />
                             Marge potentielle : {totals.margePotentielle.toLocaleString('fr-FR')} FCFA
@@ -354,24 +331,12 @@ export default function ProduitsPage() {
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Photo
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Produit
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Référence
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Prix
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Stock
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                                    Actions
-                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Photo</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Produit</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Référence</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Prix</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Stock</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Actions</th>
                             </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -395,9 +360,7 @@ export default function ProduitsPage() {
                                     </td>
                                     <td className="px-4 py-3">
                                         <p className="text-sm font-medium text-gray-900">{p.nom}</p>
-                                        <p className="text-xs text-gray-500">
-                                            {p.categorieNom || 'Sans catégorie'}
-                                        </p>
+                                        <p className="text-xs text-gray-500">{p.categorieNom || 'Sans catégorie'}</p>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-700">{p.reference}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900 font-medium">
@@ -416,39 +379,27 @@ export default function ProduitsPage() {
                                             {p.stock}
                                         </span>
                                     </td>
-
                                     <td className="px-4 py-3 text-right">
                                         <div className="flex items-center justify-end gap-1">
                                             <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    navigate(`${basePath}/${p.id}`);
-                                                }}
+                                                onClick={(e) => { e.stopPropagation(); navigate(`${basePath}/${p.id}`); }}
                                                 className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
                                                 title="Voir le détail"
                                             >
                                                 <EyeIcon className="h-4 w-4" />
                                             </button>
-
                                             {canEdit && (
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        openEditModal(p);
-                                                    }}
+                                                    onClick={(e) => { e.stopPropagation(); openEditModal(p); }}
                                                     className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
                                                     title="Modifier"
                                                 >
                                                     <PencilSquareIcon className="h-4 w-4" />
                                                 </button>
                                             )}
-
                                             {canDelete && (
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDelete(p);
-                                                    }}
+                                                    onClick={(e) => { e.stopPropagation(); handleDelete(p); }}
                                                     className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                                     title="Supprimer"
                                                 >
@@ -462,7 +413,6 @@ export default function ProduitsPage() {
                             </tbody>
                         </table>
 
-                        {/* ⚠️ BARRE DE PAGINATION */}
                         <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-white border-t border-gray-100 gap-4">
                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                 <span>Afficher</span>
@@ -478,11 +428,8 @@ export default function ProduitsPage() {
                                 </select>
                                 <span>par page</span>
                             </div>
-
                             <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-600">
-                                    Page {currentPage} sur {totalPages}
-                                </span>
+                                <span className="text-sm text-gray-600">Page {currentPage} sur {totalPages}</span>
                                 <div className="flex gap-1">
                                     <button
                                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -505,7 +452,6 @@ export default function ProduitsPage() {
                 )}
             </div>
 
-            {/* Modal de création / édition */}
             <Modal
                 isOpen={isModalOpen}
                 onClose={closeModal}
@@ -513,9 +459,7 @@ export default function ProduitsPage() {
                 size="2xl"
                 footer={
                     <>
-                        <Button variant="secondary" onClick={closeModal}>
-                            Annuler
-                        </Button>
+                        <Button variant="secondary" onClick={closeModal}>Annuler</Button>
                         <Button type="submit" form="produit-form" loading={isSubmitting}>
                             {editingProduit ? 'Enregistrer' : 'Créer'}
                         </Button>
@@ -525,21 +469,15 @@ export default function ProduitsPage() {
                 <form id="produit-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Référence *
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Référence *</label>
                             <input
                                 {...register('reference')}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                             />
-                            {errors.reference && (
-                                <p className="mt-1 text-sm text-red-600">{errors.reference.message}</p>
-                            )}
+                            {errors.reference && <p className="mt-1 text-sm text-red-600">{errors.reference.message}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Catégorie
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
                             <Controller
                                 name="categorieId"
                                 control={control}
@@ -565,9 +503,7 @@ export default function ProduitsPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Description
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                         <textarea
                             {...register('description')}
                             rows={3}
@@ -577,33 +513,27 @@ export default function ProduitsPage() {
 
                     <div className="grid grid-cols-3 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Prix vente *
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Prix vente *</label>
                             <input
-                                {...register('prix', { valueAsNumber: true })}
+                                {...register('prix', { setValueAs: (v) => (v === '' ? 0 : Number(v)) })} // ⚠️ Gère le vide
                                 type="number"
                                 step="0.01"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Prix achat *
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Prix achat *</label>
                             <input
-                                {...register('prixAchat', { valueAsNumber: true })}
+                                {...register('prixAchat', { setValueAs: (v) => (v === '' ? 0 : Number(v)) })} // ⚠️ Gère le vide
                                 type="number"
                                 step="0.01"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Stock *
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Stock *</label>
                             <input
-                                {...register('stock', { valueAsNumber: true })}
+                                {...register('stock', { setValueAs: (v) => (v === '' ? 0 : Number(v)) })} // ⚠️ Gère le vide
                                 type="number"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                             />
@@ -617,9 +547,7 @@ export default function ProduitsPage() {
                             {...register('actif')}
                             className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                         />
-                        <label htmlFor="actif" className="text-sm text-gray-700">
-                            Produit actif
-                        </label>
+                        <label htmlFor="actif" className="text-sm text-gray-700">Produit actif</label>
                     </div>
                 </form>
             </Modal>

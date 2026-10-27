@@ -20,7 +20,7 @@ export type StatutPaiement =
 export interface MethodePaiementOption {
     value: MethodePaiement;
     label: string;
-    icon: string;   // emoji simple
+    icon: string;
 }
 
 export interface StatutPaiementOption {
@@ -34,7 +34,8 @@ export interface StatutPaiementOption {
 // ============================================================
 
 export interface PaiementRequest {
-    commandeId: number;
+    commandeId?: number;
+    commandeAchatId?: number;
     montant: number;
     methode: MethodePaiement;
     reference?: string;
@@ -50,6 +51,8 @@ export interface PaiementResponse {
     numero: string;
     commandeId: number | null;
     commandeNumero: string | null;
+    commandeAchatId: number | null;
+    commandeAchatNumero: string | null;
     montant: number;
     methode: MethodePaiement;
     methodeLibelle: string;
