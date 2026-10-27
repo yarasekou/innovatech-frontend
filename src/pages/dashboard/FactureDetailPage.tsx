@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeftIcon,
-    PrinterIcon,
+    ArrowDownTrayIcon, // ⚠️ NOUVEAU : Icône de téléchargement
     PaperAirplaneIcon,
     TrashIcon,
     BanknotesIcon,
@@ -13,6 +13,7 @@ import Button from '../../components/Button';
 import { factureService } from '../../services/factureService';
 import { commandeService } from '../../services/commandeService';
 import { commandeAchatService } from '../../services/commandeAchatService';
+import api from '../../services/api'; // ⚠️ NOUVEAU : Pour télécharger le PDF
 import { useAuthStore } from '../../stores/authStore';
 import {
     isUser as checkIsUser,
@@ -43,6 +44,7 @@ export default function FactureDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
+    const [downloading, setDownloading] = useState(false); // ⚠️ NOUVEAU : État de téléchargement
 
     // ============================================================
     // Charger la facture ET les lignes
@@ -57,17 +59,14 @@ export default function FactureDetailPage() {
             setLoading(true);
             setError(null);
 
-            // 1. Charger la facture
             const data = await factureService.getFactureById(factureId);
             setFacture(data);
 
-            // 2. Charger les lignes (soit Vente, soit Achat)
             if (data.commandeId) {
                 const cmd = await commandeService.getCommandeById(data.commandeId);
                 setLignes(cmd.lignes || []);
             } else if (data.commandeAchatId) {
                 const cmdAchat = await commandeAchatService.getCommandeAchatById(data.commandeAchatId);
-                // Adaptation du nom du champ (l'achat a prixAchatUnitaire)
                 const lignesAdaptees = (cmdAchat.lignes || []).map((l: any) => ({
                     ...l,
                     prixUnitaire: l.prixAchatUnitaire || 0,
@@ -123,8 +122,35 @@ export default function FactureDetailPage() {
         }
     };
 
-    const handlePrint = () => {
-        window.print();
+    // ============================================================
+    // Téléchargement PDF (avec token JWT)
+    // ============================================================
+    const handleDownloadPdf = async () => {
+        if (!facture) return;
+        try {
+            setDownloading(true);
+            // On utilise Axios pour envoyer le token JWT
+            const response = await api.get(`/factures/${facture.id}/pdf`, {
+                responseType: 'blob', // Important pour les fichiers
+            });
+
+            // Créer un lien temporaire pour télécharger le fichier
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `facture-${facture.numero}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+
+            // Nettoyage
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("Erreur téléchargement PDF", err);
+            alert("Impossible de télécharger le PDF. Vérifiez que le backend est démarré.");
+        } finally {
+            setDownloading(false);
+        }
     };
 
     if (loading) return <LoadingSpinner />;
@@ -147,7 +173,7 @@ export default function FactureDetailPage() {
 
     return (
         <div className="p-8 print:p-0 bg-gray-50 min-h-screen">
-            {/* Actions (cachées à l'impression) */}
+            {/* Actions */}
             <div className="print:hidden max-w-5xl mx-auto">
                 <button
                     onClick={() => navigate(basePath)}
@@ -169,8 +195,14 @@ export default function FactureDetailPage() {
 
                     {canEdit && (
                         <div className="flex flex-wrap gap-2">
-                            <Button variant="secondary" icon={<PrinterIcon className="h-4 w-4" />} onClick={handlePrint}>
-                                Imprimer / PDF
+                            {/* ⚠️ BOUTON PDF MODIFIÉ */}
+                            <Button
+                                variant="secondary"
+                                icon={<ArrowDownTrayIcon className="h-4 w-4" />}
+                                onClick={handleDownloadPdf}
+                                loading={downloading}
+                            >
+                                Télécharger PDF
                             </Button>
 
                             {facture.statut === 'BROUILLON' && (
@@ -207,7 +239,7 @@ export default function FactureDetailPage() {
                 )}
 
                 <div className="p-12 relative z-10">
-                    {/* En-tête : Logo Entreprise + Infos Facture */}
+                    {/* En-tête */}
                     <div className="flex justify-between items-start border-b-2 border-gray-100 pb-8 mb-8">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
@@ -258,7 +290,7 @@ export default function FactureDetailPage() {
                         </div>
                     </div>
 
-                    {/* Tableau des Lignes (Produits) */}
+                    {/* Tableau des Lignes */}
                     <table className="w-full mb-8">
                         <thead>
                         <tr className="border-b border-gray-200">
@@ -307,7 +339,7 @@ export default function FactureDetailPage() {
                         </div>
                     </div>
 
-                    {/* Pied de page (Mentions légales) */}
+                    {/* Pied de page */}
                     <div className="mt-16 pt-8 border-t border-gray-100 text-xs text-gray-400 text-center space-y-1">
                         <p className="font-medium text-gray-500">{facture.entrepriseNom} - SARL au capital de 1 000 000 FCFA</p>
                         <p>Dakar, Sénégal - NINEA : 123456789 - RC : SN-DKR-2026-B-1234</p>

@@ -25,7 +25,8 @@ import NouveauRetourPage from './pages/dashboard/NouveauRetourPage';
 import AchatsPage from './pages/dashboard/AchatsPage';
 import AchatDetailPage from './pages/dashboard/AchatDetailPage';
 import FacturesPage from './pages/dashboard/FacturesPage'; // ⚠️ NOUVEAU
-import FactureDetailPage from './pages/dashboard/FactureDetailPage'; // ⚠️ NOUVEAU
+import FactureDetailPage from './pages/dashboard/FactureDetailPage';
+import SellersPage from "./pages/dashboard/SellersPage.tsx"; // ⚠️ NOUVEAU
 
 export const router = createBrowserRouter([
     // ============================================================
@@ -130,8 +131,9 @@ export const router = createBrowserRouter([
                     { path: 'retours/:id', element: <RetourDetailPage /> },
                     { path: 'achats', element: <AchatsPage /> },
                     { path: 'achats/:id', element: <AchatDetailPage /> },
-                    { path: 'factures', element: <FacturesPage /> },                 // ⚠️ NOUVEAU
-                    { path: 'factures/:id', element: <FactureDetailPage /> },        // ⚠️ NOUVEAU
+                    { path: 'factures', element: <FacturesPage /> },
+                    { path: 'factures/:id', element: <FactureDetailPage /> },
+                    { path: 'sellers', element: <SellersPage /> },
                 ],
             },
         ],
