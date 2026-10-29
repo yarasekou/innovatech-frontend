@@ -56,5 +56,5 @@ export const commandeService = {
     // ============================================================
     async deleteCommande(id: number): Promise<void> {
         await api.delete(`/commandes/${id}`);
-    },
+    }
 };

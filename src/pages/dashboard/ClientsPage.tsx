@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -55,7 +56,16 @@ type ClientForm = z.infer<typeof clientSchema>;
 // ============================================================
 
 export default function ClientsPage() {
-    const { clients, loading, error, isInspection, reload } = useClients();
+    const navigate = useNavigate();
+    const { userId } = useParams<{ userId?: string }>();
+    const isInspection = !!userId;
+
+    // ⚠️ Chemin de base pour la navigation
+    const basePath = isInspection
+        ? `/dashboard/users/${userId}/clients`
+        : '/dashboard/clients';
+
+    const { clients, loading, error, reload } = useClients();
     const authUser = useAuthStore((state) => state.user);
     const roles = authUser?.roles || [];
 
@@ -70,7 +80,7 @@ export default function ClientsPage() {
     const [search, setSearch] = useState('');
     const [villeFilter, setVilleFilter] = useState<string>('');
 
-    // ⚠️ ÉTATS POUR LA PAGINATION
+    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -104,7 +114,7 @@ export default function ClientsPage() {
     }, [clients]);
 
     // ============================================================
-    // Filtrage
+    // Filtrage & Pagination
     // ============================================================
     const filtered = useMemo(() => {
         return clients.filter((c) => {
@@ -120,25 +130,17 @@ export default function ClientsPage() {
         });
     }, [clients, search, villeFilter]);
 
-    // ============================================================
-    // Pagination Logic
-    // ============================================================
     const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
-    // Si on change de filtre, on revient à la page 1
     useEffect(() => {
         setCurrentPage(1);
     }, [search, villeFilter, itemsPerPage]);
 
-    // Clients de la page actuelle
     const paginatedClients = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
         return filtered.slice(start, start + itemsPerPage);
     }, [filtered, currentPage, itemsPerPage]);
 
-    // ============================================================
-    // Totaux (calculés sur TOUS les clients filtrés)
-    // ============================================================
     const totals = useMemo(() => {
         const total = filtered.length;
         const actifs = filtered.filter((c) => c.actif).length;
@@ -340,32 +342,24 @@ export default function ClientsPage() {
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Client
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Email
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Téléphone
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Ville
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Statut
-                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Client</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Email</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Téléphone</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Ville</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Statut</th>
                                 {!isInspection && canEdit && (
-                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                                        Actions
-                                    </th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Actions</th>
                                 )}
                             </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                             {paginatedClients.map((c) => (
-                                <tr key={c.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3">
+                                <tr
+                                    key={c.id}
+                                    className="hover:bg-gray-50 cursor-pointer"
+                                    onClick={() => navigate(`${basePath}/${c.id}`)}
+                                >
+                                    <td className="px-4 py-3 min-w-[200px]">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
                                                 <span className="text-sm font-semibold text-primary-700">
@@ -373,10 +367,11 @@ export default function ClientsPage() {
                                                     {c.nom.charAt(0).toUpperCase()}
                                                 </span>
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900">
+                                            <div className="truncate">
+                                                <p className="text-sm font-medium text-gray-900 truncate">
                                                     {c.prenom} {c.nom}
                                                 </p>
+                                                <p className="text-xs text-gray-500 truncate">{c.email}</p>
                                             </div>
                                         </div>
                                     </td>
@@ -404,7 +399,7 @@ export default function ClientsPage() {
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <button
-                                                    onClick={() => handleToggleActif(c)}
+                                                    onClick={(e) => { e.stopPropagation(); handleToggleActif(c); }}
                                                     className={`p-2 rounded-lg transition-colors ${
                                                         c.actif
                                                             ? 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'
@@ -420,7 +415,7 @@ export default function ClientsPage() {
                                                 </button>
 
                                                 <button
-                                                    onClick={() => openEditModal(c)}
+                                                    onClick={(e) => { e.stopPropagation(); openEditModal(c); }}
                                                     className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
                                                     title="Modifier"
                                                 >
@@ -429,7 +424,7 @@ export default function ClientsPage() {
 
                                                 {canDelete && (
                                                     <button
-                                                        onClick={() => handleDelete(c)}
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(c); }}
                                                         className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                                         title="Supprimer"
                                                     >
@@ -444,7 +439,7 @@ export default function ClientsPage() {
                             </tbody>
                         </table>
 
-                        {/* ⚠️ BARRE DE PAGINATION */}
+                        {/* Pagination */}
                         <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-white border-t border-gray-100 gap-4">
                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                 <span>Afficher</span>
@@ -507,9 +502,7 @@ export default function ClientsPage() {
                 <form id="client-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Prénom *
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
                             <input
                                 {...register('prenom')}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
@@ -517,9 +510,7 @@ export default function ClientsPage() {
                             {errors.prenom && <p className="mt-1 text-sm text-red-600">{errors.prenom.message}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Nom *
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
                             <input
                                 {...register('nom')}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
@@ -530,9 +521,7 @@ export default function ClientsPage() {
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Email *
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
                             <input
                                 {...register('email')}
                                 type="email"
@@ -541,9 +530,7 @@ export default function ClientsPage() {
                             {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Téléphone
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
                             <input
                                 {...register('telephone')}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
@@ -552,9 +539,7 @@ export default function ClientsPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Adresse
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
                         <input
                             {...register('adresse')}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
@@ -563,18 +548,14 @@ export default function ClientsPage() {
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Ville
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
                             <input
                                 {...register('ville')}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Pays
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Pays</label>
                             <input
                                 {...register('pays')}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
@@ -583,9 +564,7 @@ export default function ClientsPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            SIRET
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">SIRET</label>
                         <input
                             {...register('siret')}
                             maxLength={14}

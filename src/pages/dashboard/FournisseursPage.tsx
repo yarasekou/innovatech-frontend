@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -56,7 +57,15 @@ type FournisseurForm = z.infer<typeof fournisseurSchema>;
 // ============================================================
 
 export default function FournisseursPage() {
-    const { fournisseurs, loading, error, isInspection, reload } = useFournisseurs();
+    const navigate = useNavigate();
+    const { userId } = useParams<{ userId?: string }>();
+    const isInspection = !!userId;
+
+    const basePath = isInspection
+        ? `/dashboard/users/${userId}/fournisseurs`
+        : '/dashboard/fournisseurs';
+
+    const { fournisseurs, loading, error, reload } = useFournisseurs();
     const authUser = useAuthStore((state) => state.user);
     const roles = authUser?.roles || [];
 
@@ -71,7 +80,7 @@ export default function FournisseursPage() {
     const [search, setSearch] = useState('');
     const [paysFilter, setPaysFilter] = useState<string>('');
 
-    // ⚠️ ÉTATS POUR LA PAGINATION
+    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -372,7 +381,11 @@ export default function FournisseursPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                             {paginatedFournisseurs.map((f) => (
-                                <tr key={f.id} className="hover:bg-gray-50">
+                                <tr
+                                    key={f.id}
+                                    className="hover:bg-gray-50 cursor-pointer"
+                                    onClick={() => navigate(`${basePath}/${f.id}`)}
+                                >
                                     <td className="px-4 py-3">
                                         <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-mono font-medium bg-gray-100 text-gray-700">
                                             {f.code}
@@ -419,7 +432,7 @@ export default function FournisseursPage() {
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <button
-                                                    onClick={() => handleToggleActif(f)}
+                                                    onClick={(e) => { e.stopPropagation(); handleToggleActif(f); }}
                                                     className={`p-2 rounded-lg transition-colors ${
                                                         f.actif
                                                             ? 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'
@@ -435,7 +448,7 @@ export default function FournisseursPage() {
                                                 </button>
 
                                                 <button
-                                                    onClick={() => openEditModal(f)}
+                                                    onClick={(e) => { e.stopPropagation(); openEditModal(f); }}
                                                     className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
                                                     title="Modifier"
                                                 >
@@ -444,7 +457,7 @@ export default function FournisseursPage() {
 
                                                 {canDelete && (
                                                     <button
-                                                        onClick={() => handleDelete(f)}
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(f); }}
                                                         className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                                         title="Supprimer"
                                                     >

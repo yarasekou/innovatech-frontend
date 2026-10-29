@@ -9,7 +9,7 @@ import {
 import PageHeader from '../../components/PageHeader';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
-import { usePaiements } from '../../hooks/usePaiements';
+import { usePaiements } from '../../hooks/usePaiements.ts';
 import {
     STATUTS_PAIEMENT,
     getMethodeOption,

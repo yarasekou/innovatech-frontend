@@ -10,7 +10,7 @@ import {
     DocumentTextIcon,
     BanknotesIcon,
     PlusIcon,
-    ArrowUturnLeftIcon,
+    ArrowUturnLeftIcon, // ⚠️ Import ajouté
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Button from '../../components/Button';
@@ -68,6 +68,9 @@ export default function CommandeDetailPage() {
     const canEdit = (checkIsUser(roles) || checkIsSeller(roles)) && !isInspection;
     const canDelete = checkIsUser(roles) && !isInspection;
 
+    // ============================================================
+    // States
+    // ============================================================
     const [commande, setCommande] = useState<CommandeResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -75,13 +78,11 @@ export default function CommandeDetailPage() {
 
     const [paiements, setPaiements] = useState<PaiementResponse[]>([]);
     const [reste, setReste] = useState<ResteAPayer | null>(null);
-    const [retours, setRetours] = useState<RetourResponse[]>([]);
+    const [retours, setRetours] = useState<RetourResponse[]>([]); // ⚠️ Un seul state retours
     const [factureId, setFactureId] = useState<number | null>(null);
 
     const [isPaiementModalOpen, setIsPaiementModalOpen] = useState(false);
     const [paiementSubmitting, setPaiementSubmitting] = useState(false);
-
-    // ⚠️ State modifié pour accepter '' (chaîne vide)
     const [paiementForm, setPaiementForm] = useState<{
         montant: number | '';
         methode: MethodePaiement;
@@ -193,9 +194,6 @@ export default function CommandeDetailPage() {
         }
     };
 
-    // ============================================================
-    // Paiement
-    // ============================================================
     const openPaiementModal = (): void => {
         setPaiementForm({
             montant: reste?.resteAPayer ?? '',
@@ -208,9 +206,7 @@ export default function CommandeDetailPage() {
 
     const handleCreatePaiement = async (): Promise<void> => {
         if (!commande) return;
-
         const montantToSend = Number(paiementForm.montant) || 0;
-
         if (montantToSend <= 0) {
             alert('Le montant doit être supérieur à 0');
             return;
@@ -239,6 +235,9 @@ export default function CommandeDetailPage() {
         }
     };
 
+    // ============================================================
+    // Rendu
+    // ============================================================
     if (loading) return <LoadingSpinner />;
 
     if (error) {
@@ -275,9 +274,163 @@ export default function CommandeDetailPage() {
 
     return (
         <div className="p-8">
-            {/* ... (En-tête, Actions, Lignes inchangés) ... */}
+            <button
+                onClick={() => navigate(basePath)}
+                className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6"
+            >
+                <ArrowLeftIcon className="h-4 w-4" />
+                Retour aux commandes
+            </button>
 
-            {/* Reprise à la partie Paiements pour le modal */}
+            <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
+                <div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <h1 className="text-3xl font-bold text-gray-900">{commande.numero}</h1>
+                        <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${statut.color}`}>
+                            {statut.label}
+                        </span>
+                        {reste && (
+                            <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${soldeInfo.color}`}>
+                                {soldeInfo.label}
+                            </span>
+                        )}
+                        {retours.length > 0 && (
+                            <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700">
+                                {retours.length} retour{retours.length > 1 ? 's' : ''}
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                        Créée le {new Date(commande.dateCommande).toLocaleDateString('fr-FR', {
+                        day: '2-digit', month: 'long', year: 'numeric',
+                    })}
+                    </p>
+                </div>
+
+                {canEdit && (
+                    <div className="flex flex-wrap gap-2">
+                        {commande.statut === 'EN_ATTENTE' && (
+                            <Button
+                                variant="secondary"
+                                icon={<PencilSquareIcon className="h-4 w-4" />}
+                                onClick={() => navigate(`${basePath}?edit=${commande.id}`)}
+                            >
+                                Modifier
+                            </Button>
+                        )}
+
+                        {transitions.map((t) => (
+                            <Button
+                                key={t}
+                                variant={t === 'ANNULEE' ? 'danger' : 'primary'}
+                                onClick={() => handleChangerStatut(t)}
+                                loading={actionLoading}
+                                icon={
+                                    t === 'VALIDEE' ? <CheckCircleIcon className="h-4 w-4" /> :
+                                        t === 'LIVREE' ? <TruckIcon className="h-4 w-4" /> :
+                                            t === 'ANNULEE' ? <XCircleIcon className="h-4 w-4" /> : undefined
+                                }
+                            >
+                                {t === 'VALIDEE' && 'Valider'}
+                                {t === 'EN_COURS' && 'Démarrer'}
+                                {t === 'LIVREE' && 'Marquer livrée'}
+                                {t === 'ANNULEE' && 'Annuler'}
+                            </Button>
+                        ))}
+
+                        {canDelete && (commande.statut === 'EN_ATTENTE' || commande.statut === 'VALIDEE') && (
+                            <Button variant="danger" icon={<TrashIcon className="h-4 w-4" />} onClick={handleDelete}>
+                                Supprimer
+                            </Button>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {commande.client && (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <h2 className="text-xs uppercase font-semibold text-gray-500 mb-3">Client</h2>
+                        <p className="text-lg font-semibold text-gray-900">
+                            {commande.client.prenom} {commande.client.nom}
+                        </p>
+                        <p className="text-sm text-gray-600">{commande.client.email}</p>
+                    </div>
+                )}
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <h2 className="text-xs uppercase font-semibold text-gray-500 mb-3">Totaux</h2>
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Total HT</span>
+                            <span className="font-medium">{commande.totalHT.toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">TVA ({commande.tvaPercent}%)</span>
+                            <span className="font-medium">{(commande.totalTTC - commande.totalHT).toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                        <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
+                            <span>Total TTC</span>
+                            <span className="text-primary-600">{commande.totalTTC.toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {commande.notes && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+                    <h2 className="text-xs uppercase font-semibold text-gray-500 mb-2">Notes</h2>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{commande.notes}</p>
+                </div>
+            )}
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+                <div className="px-6 py-4 border-b border-gray-100">
+                    <h2 className="text-lg font-semibold text-gray-900">Lignes ({commande.lignes.length})</h2>
+                </div>
+                <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Produit</th>
+                        <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Prix unitaire</th>
+                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Quantité</th>
+                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Retourné</th>
+                        <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Sous-total</th>
+                    </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                    {commande.lignes.map((l) => {
+                        const dejaRetourne = quantitesRetournees.get(l.produitId) || 0;
+                        const restant = l.quantite - dejaRetourne;
+
+                        return (
+                            <tr key={l.id}>
+                                <td className="px-6 py-3">
+                                    <p className="text-sm font-medium text-gray-900">{l.produitNom}</p>
+                                    <p className="text-xs text-gray-500 font-mono">{l.produitReference}</p>
+                                </td>
+                                <td className="px-6 py-3 text-right text-sm text-gray-700">{l.prixUnitaire.toLocaleString('fr-FR')} FCFA</td>
+                                <td className="px-6 py-3 text-center text-sm font-medium">{l.quantite}</td>
+                                <td className="px-6 py-3 text-center">
+                                    {dejaRetourne > 0 ? (
+                                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                                            restant === 0 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                                        }`}>
+                                            {dejaRetourne} {restant === 0 ? ' (tout)' : ` / ${l.quantite}`}
+                                        </span>
+                                    ) : (
+                                        <span className="text-xs text-gray-400">—</span>
+                                    )}
+                                </td>
+                                <td className="px-6 py-3 text-right text-sm font-semibold text-gray-900">{l.sousTotal.toLocaleString('fr-FR')} FCFA</td>
+                            </tr>
+                        );
+                    })}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Paiements */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                     <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -292,32 +445,22 @@ export default function CommandeDetailPage() {
                 </div>
 
                 {reste && (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
-                            <div>
-                                <p className="text-xs text-gray-500 uppercase font-semibold">Total TTC</p>
-                                <p className="text-lg font-bold text-gray-900 mt-1">{reste.totalTTC.toLocaleString('fr-FR')} FCFA</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-500 uppercase font-semibold">Déjà payé</p>
-                                <p className="text-lg font-bold text-green-600 mt-1">{reste.totalPaye.toLocaleString('fr-FR')} FCFA</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-500 uppercase font-semibold">Reste à payer</p>
-                                <p className={`text-lg font-bold mt-1 ${reste.solde ? 'text-green-600' : 'text-red-600'}`}>
-                                    {reste.resteAPayer.toLocaleString('fr-FR')} FCFA
-                                </p>
-                            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase font-semibold">Total TTC</p>
+                            <p className="text-lg font-bold text-gray-900 mt-1">{reste.totalTTC.toLocaleString('fr-FR')} FCFA</p>
                         </div>
-                        <div className="mb-4">
-                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div className="h-full bg-green-500 transition-all" style={{ width: `${reste.totalTTC > 0 ? Math.min(100, (reste.totalPaye / reste.totalTTC) * 100) : 0}%` }} />
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1 text-right">
-                                {reste.totalTTC > 0 ? Math.round((reste.totalPaye / reste.totalTTC) * 100) : 0}% payé
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase font-semibold">Déjà payé</p>
+                            <p className="text-lg font-bold text-green-600 mt-1">{reste.totalPaye.toLocaleString('fr-FR')} FCFA</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase font-semibold">Reste à payer</p>
+                            <p className={`text-lg font-bold mt-1 ${reste.solde ? 'text-green-600' : 'text-red-600'}`}>
+                                {reste.resteAPayer.toLocaleString('fr-FR')} FCFA
                             </p>
                         </div>
-                    </>
+                    </div>
                 )}
 
                 {paiements.length === 0 ? (
@@ -329,19 +472,14 @@ export default function CommandeDetailPage() {
                             const methode = getMethodeOption(p.methode);
                             return (
                                 <div key={p.id} className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
-                                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 text-lg">
-                                        {methode.icon}
-                                    </div>
+                                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 text-lg">{methode.icon}</div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <span className="text-sm font-mono font-medium text-gray-900">{p.numero}</span>
-                                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${pStatut.color}`}>
-                                                {pStatut.label}
-                                            </span>
+                                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${pStatut.color}`}>{pStatut.label}</span>
                                         </div>
                                         <p className="text-xs text-gray-500 mt-1">
-                                            {methode.label}{p.reference && ` • Réf : ${p.reference}`}{' • '}
-                                            {new Date(p.datePaiement).toLocaleDateString('fr-FR')}
+                                            {methode.label}{p.reference && ` • Réf : ${p.reference}`} • {new Date(p.datePaiement).toLocaleDateString('fr-FR')}
                                         </p>
                                     </div>
                                     <div className="text-right">
@@ -354,7 +492,105 @@ export default function CommandeDetailPage() {
                 )}
             </div>
 
-            {/* Modal Paiement (Modifié) */}
+            {/* Retours */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                    <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                        <ArrowUturnLeftIcon className="h-5 w-5 text-orange-600" />
+                        Retours ({retours.length})
+                    </h2>
+
+                    {/* ⚠️ BOUTON POUR DEMANDER UN RETOUR */}
+                    {canEdit && commande.statut === 'LIVREE' && (
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            icon={<PlusIcon className="h-4 w-4" />}
+                            onClick={() =>
+                                navigate(
+                                    isInspection
+                                        ? `/dashboard/users/${userId}/retours/nouveau?commandeId=${commande.id}`
+                                        : `/dashboard/retours/nouveau?commandeId=${commande.id}`
+                                )
+                            }
+                        >
+                            Demander un retour
+                        </Button>
+                    )}
+                </div>
+
+                {retours.length === 0 ? (
+                    <p className="text-sm text-gray-500 italic py-4 text-center">
+                        Aucun retour pour cette commande
+                    </p>
+                ) : (
+                    <div className="space-y-2">
+                        {retours.map((r) => {
+                            const rStatut = getStatutRetourOption(r.statut);
+                            return (
+                                <div
+                                    key={r.id}
+                                    onClick={() =>
+                                        navigate(
+                                            isInspection
+                                                ? `/dashboard/users/${userId}/retours/${r.id}`
+                                                : `/dashboard/retours/${r.id}`
+                                        )
+                                    }
+                                    className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer"
+                                >
+                                    <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+                                        <ArrowUturnLeftIcon className="h-5 w-5 text-orange-600" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-sm font-mono font-medium text-gray-900">
+                                                {r.numero}
+                                            </span>
+                                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${rStatut.color}`}>
+                                                {rStatut.label}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {r.lignes.length} ligne{r.lignes.length > 1 ? 's' : ''}
+                                            {r.motif && ` • ${r.motif}`}
+                                            {' • '}
+                                            {new Date(r.dateDemande).toLocaleDateString('fr-FR')}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-semibold text-gray-900">
+                                            {r.montantTotal.toLocaleString('fr-FR')} FCFA
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+
+            {/* Facture */}
+            {commande.statut === 'LIVREE' && (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-6 flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-start gap-3">
+                        <DocumentTextIcon className="h-6 w-6 text-green-600 flex-shrink-0" />
+                        <div>
+                            <p className="text-sm font-medium text-green-900">Commande livrée</p>
+                            <p className="text-sm text-green-700 mt-1">
+                                {factureId ? 'La facture a déjà été générée.' : 'Vous pouvez générer la facture.'}
+                            </p>
+                        </div>
+                    </div>
+                    {factureId ? (
+                        <Button variant="secondary" onClick={() => navigate(`${factureBasePath}/${factureId}`)}>Voir la facture</Button>
+                    ) : (
+                        canEdit && <Button onClick={handleCreerFacture} loading={actionLoading}>Générer la facture</Button>
+                    )}
+                </div>
+            )}
+
+            {/* Modal Paiement */}
             <Modal
                 isOpen={isPaiementModalOpen}
                 onClose={() => setIsPaiementModalOpen(false)}
@@ -370,7 +606,6 @@ export default function CommandeDetailPage() {
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Montant (FCFA) *</label>
-                        {/* ⚠️ INPUT MODIFIÉ */}
                         <input
                             type="number"
                             step="0.01"
@@ -406,15 +641,6 @@ export default function CommandeDetailPage() {
                             type="text"
                             value={paiementForm.reference}
                             onChange={(e) => setPaiementForm({ ...paiementForm, reference: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                        <textarea
-                            value={paiementForm.notes}
-                            onChange={(e) => setPaiementForm({ ...paiementForm, notes: e.target.value })}
-                            rows={2}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         />
                     </div>

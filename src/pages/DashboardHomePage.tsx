@@ -23,7 +23,6 @@ export default function DashboardHomePage() {
     const isSuper = isSuperAdmin(roles);
 
     const [periode, setPeriode] = useState<Periode>('TOUT');
-
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [caMensuel, setCaMensuel] = useState<ChiffreAffairesMois[]>([]);
     const [topProduits, setTopProduits] = useState<TopProduit[]>([]);
@@ -59,8 +58,16 @@ export default function DashboardHomePage() {
     const load = useCallback(async () => {
         try {
             setLoading(true);
-            const { dateDebut, dateFin } = getDates(periode);
 
+            // ⚠️ Si c'est un SUPER_ADMIN (et qu'on n'est pas en mode inspection), on ne charge que les stats globales
+            if (isSuper && !userId) {
+                const statsData = await dashboardService.getStats();
+                setStats(statsData);
+                setLoading(false);
+                return;
+            }
+
+            const { dateDebut, dateFin } = getDates(periode);
             const [statsData, caData, topP, topC] = await Promise.all([
                 dashboardService.getStats(dateDebut, dateFin),
                 dashboardService.getChiffreAffairesMensuel(dateDebut, dateFin),
@@ -79,7 +86,7 @@ export default function DashboardHomePage() {
         } finally {
             setLoading(false);
         }
-    }, [periode]);
+    }, [periode, isSuper, userId]);
 
     useEffect(() => {
         void load();
@@ -88,7 +95,9 @@ export default function DashboardHomePage() {
     if (loading && !stats) return <LoadingSpinner />;
     if (!stats) return null;
 
-    // Vue SUPER_ADMIN
+    // ============================================================
+    // VUE SUPER_ADMIN
+    // ============================================================
     if (isSuper && !userId) {
         return (
             <div className="p-8">
@@ -99,18 +108,23 @@ export default function DashboardHomePage() {
                     <StatCard label="Paiements" value={stats.nbPaiements} icon={<DocumentTextIcon className="h-6 w-6 text-blue-600" />} bg="bg-blue-100" />
                     <StatCard label="Achats" value={stats.nbCommandesAchat} icon={<ShoppingCartIcon className="h-6 w-6 text-orange-600" />} bg="bg-orange-100" />
                 </div>
+                <div className="mt-8 bg-primary-50 border border-primary-100 rounded-xl p-6">
+                    <p className="text-sm text-primary-700">
+                        👁️ Cliquez sur <strong>Utilisateurs</strong> dans le menu pour inspecter les boutiques d'un ADMIN.
+                    </p>
+                </div>
             </div>
         );
     }
 
-    // Vue Tenant
-    // @ts-ignore
+    // ============================================================
+    // VUE TENANT (ADMIN / USER / SELLER)
+    // ============================================================
     return (
         <div className="p-8">
             <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
                 <PageHeader title="Tableau de bord" subtitle="Aperçu de votre activité" />
 
-                {/* ⚠️ SÉLECTEUR DE PÉRIODE */}
                 <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
                     <CalendarDaysIcon className="h-5 w-5 text-gray-400" />
                     <select
@@ -127,21 +141,18 @@ export default function DashboardHomePage() {
                 </div>
             </div>
 
-            {/* KPIs Ligne 1 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <StatCard label="Chiffre d'Affaires" value={`${stats.chiffreAffairesTTC.toLocaleString('fr-FR')} FCFA`} icon={<CurrencyDollarIcon className="h-6 w-6 text-green-600" />} bg="bg-green-100" />
                 <StatCard label="Marge Totale" value={`${stats.margeTotale.toLocaleString('fr-FR')} FCFA`} icon={<ArrowTrendingUpIcon className="h-6 w-6 text-blue-600" />} bg="bg-blue-100" />
                 <StatCard label="Panier Moyen" value={`${stats.panierMoyen.toLocaleString('fr-FR')} FCFA`} icon={<ChartBarIcon className="h-6 w-6 text-purple-600" />} bg="bg-purple-100" />
             </div>
 
-            {/* KPIs Ligne 2 */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <StatCard label="Commandes" value={stats.nbCommandes} icon={<ShoppingCartIcon className="h-6 w-6 text-orange-600" />} bg="bg-orange-100" onClick={() => navigate('/dashboard/commandes')} />
                 <StatCard label="Produits" value={stats.nbProduits} icon={<CubeIcon className="h-6 w-6 text-green-600" />} bg="bg-green-100" onClick={() => navigate('/dashboard/produits')} />
                 <StatCard label="Clients" value={stats.nbClients} icon={<UsersIcon className="h-6 w-6 text-purple-600" />} bg="bg-purple-100" onClick={() => navigate('/dashboard/clients')} />
             </div>
 
-            {/* Graphique CA */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
                 <h2 className="text-lg font-semibold text-gray-900 mb-6">Évolution du Chiffre d'Affaires</h2>
                 <div className="h-72 w-full">
@@ -169,7 +180,6 @@ export default function DashboardHomePage() {
                 </div>
             </div>
 
-            {/* Top Produits & Top Clients */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <h2 className="text-lg font-semibold text-gray-900 mb-4">Top 5 Produits</h2>

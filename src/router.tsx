@@ -16,6 +16,7 @@ import CategoriesPage from './pages/dashboard/CategoriesPage';
 import MonEntreprisePage from './pages/dashboard/MonEntreprisePage';
 import ClientsPage from './pages/dashboard/ClientsPage';
 import FournisseursPage from './pages/dashboard/FournisseursPage';
+import FournisseurDetailPage from './pages/dashboard/FournisseurDetailPage'; // ⚠️ NOUVEAU
 import CommandesPage from './pages/dashboard/CommandesPage';
 import CommandeDetailPage from './pages/dashboard/CommandeDetailPage';
 import PaiementsPage from './pages/dashboard/PaiementsPage';
@@ -24,9 +25,11 @@ import RetourDetailPage from './pages/dashboard/RetourDetailPage';
 import NouveauRetourPage from './pages/dashboard/NouveauRetourPage';
 import AchatsPage from './pages/dashboard/AchatsPage';
 import AchatDetailPage from './pages/dashboard/AchatDetailPage';
-import FacturesPage from './pages/dashboard/FacturesPage'; // ⚠️ NOUVEAU
+import FacturesPage from './pages/dashboard/FacturesPage';
 import FactureDetailPage from './pages/dashboard/FactureDetailPage';
-import SellersPage from "./pages/dashboard/SellersPage.tsx"; // ⚠️ NOUVEAU
+import SellersPage from "./pages/dashboard/SellersPage";
+import ClientDetailPage from "./pages/dashboard/ClientDetailPage";
+import AdminStatsPage from "./pages/dashboard/AdminStatsPage";
 
 export const router = createBrowserRouter([
     // ============================================================
@@ -53,20 +56,11 @@ export const router = createBrowserRouter([
                 element: <DashboardLayout />,
                 children: [
                     // ============================================
-                    // Vue globale
+                    // Vue globale (SUPER_ADMIN)
                     // ============================================
                     { index: true, element: <DashboardHomePage /> },
                     { path: 'users', element: <UsersPage /> },
-                    {
-                        path: 'stats',
-                        element: (
-                            <PlaceholderPage
-                                title="Statistiques"
-                                icon="chart"
-                                description="Module à venir"
-                            />
-                        ),
-                    },
+                    { path: 'stats', element: <AdminStatsPage /> },
 
                     // ============================================
                     // Vue inspection (SUPER_ADMIN dans une boutique)
@@ -100,7 +94,9 @@ export const router = createBrowserRouter([
                             { path: 'produits', element: <ProduitsPage /> },
                             { path: 'produits/:id', element: <ProduitDetailPage /> },
                             { path: 'clients', element: <ClientsPage /> },
+                            { path: 'clients/:id', element: <ClientDetailPage /> },
                             { path: 'fournisseurs', element: <FournisseursPage /> },
+                            { path: 'fournisseurs/:id', element: <FournisseurDetailPage /> }, // ⚠️ NOUVEAU
                             { path: 'commandes', element: <CommandesPage /> },
                             { path: 'commandes/:id', element: <CommandeDetailPage /> },
                             { path: 'paiements', element: <PaiementsPage /> },
@@ -109,8 +105,9 @@ export const router = createBrowserRouter([
                             { path: 'retours/:id', element: <RetourDetailPage /> },
                             { path: 'achats', element: <AchatsPage /> },
                             { path: 'achats/:id', element: <AchatDetailPage /> },
-                            { path: 'factures', element: <FacturesPage /> },             // ⚠️ NOUVEAU
-                            { path: 'factures/:id', element: <FactureDetailPage /> },    // ⚠️ NOUVEAU
+                            { path: 'factures', element: <FacturesPage /> },
+                            { path: 'factures/:id', element: <FactureDetailPage /> },
+                            { path: 'stats', element: <AdminStatsPage /> },
                         ],
                     },
 
@@ -122,7 +119,9 @@ export const router = createBrowserRouter([
                     { path: 'produits', element: <ProduitsPage /> },
                     { path: 'produits/:id', element: <ProduitDetailPage /> },
                     { path: 'clients', element: <ClientsPage /> },
+                    { path: 'clients/:id', element: <ClientDetailPage /> },
                     { path: 'fournisseurs', element: <FournisseursPage /> },
+                    { path: 'fournisseurs/:id', element: <FournisseurDetailPage /> }, // ⚠️ NOUVEAU
                     { path: 'commandes', element: <CommandesPage /> },
                     { path: 'commandes/:id', element: <CommandeDetailPage /> },
                     { path: 'paiements', element: <PaiementsPage /> },
